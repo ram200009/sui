@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["COIN_JOIN_FUNC_NAME",""],["COIN_MODULE_NAME",""],["COIN_SPLIT_VEC_FUNC_NAME",""],["COIN_STRUCT_NAME",""]],"struct":[["Coin",""]]});

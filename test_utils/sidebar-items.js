@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["TEST_COMMITTEE_SIZE","The size of the committee used for tests."]],"fn":[["test_committee","Generate a test Sui committee with `TEST_COMMITTEE_SIZE` members."],["test_keys","Generate `COMMITTEE_SIZE` test cryptographic key pairs."]],"mod":[["authority",""],["messages",""],["network",""],["objects",""]]});

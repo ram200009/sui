@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["sui_network"] = [{"text":"impl&lt;U:&nbsp;<a class=\"trait\" href=\"https://docs.rs/serde/1.0.137/serde/de/trait.DeserializeOwned.html\" title=\"trait serde::de::DeserializeOwned\">DeserializeOwned</a>&gt; <a class=\"trait\" href=\"https://docs.rs/tonic/0.7.2/tonic/codec/trait.Decoder.html\" title=\"trait tonic::codec::Decoder\">Decoder</a> for <a class=\"struct\" href=\"sui_network/codec/struct.BincodeDecoder.html\" title=\"struct sui_network::codec::BincodeDecoder\">BincodeDecoder</a>&lt;U&gt;","synthetic":false,"types":["sui_network::codec::BincodeDecoder"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

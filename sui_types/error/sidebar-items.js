@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["SuiError","Custom error type for Sui."]],"type":[["SuiResult",""]]});

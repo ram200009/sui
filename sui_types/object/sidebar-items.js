@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["GAS_VALUE_FOR_TESTING",""],["OBJECT_START_VERSION",""]],"enum":[["Data",""],["ObjectRead",""],["Owner",""]],"struct":[["MoveObject",""],["Object",""],["ObjectFormatOptions","Different schemes for converting a Move value into a structured representation"]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["RpcCallArg",""]],"mod":[["responses",""]],"struct":[["RpcGatewayImpl",""],["RpcGatewayOpenRpc",""],["SignedTransaction",""],["TransactionBytes",""]],"trait":[["RpcGatewayClient","Client implementation for the `RpcGateway` RPC API."],["RpcGatewayServer","Server trait implementation for the `RpcGateway` RPC API."]]});

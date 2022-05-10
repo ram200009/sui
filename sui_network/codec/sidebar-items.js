@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["BincodeCodec","A [`Codec`] that implements `application/grpc+bincode` via the serde library."],["BincodeDecoder",""],["BincodeEncoder",""]]});

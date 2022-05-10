@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["ID_MODULE_NAME",""],["ID_STRUCT_NAME",""],["UNIQUE_ID_STRUCT_NAME",""],["VERSIONED_ID_STRUCT_NAME",""]],"struct":[["VersionedID","Rust version of the Move Sui::ID::VersionedID type"]]});

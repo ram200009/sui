@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["sui_core"] = [{"text":"impl ExecutionState for <a class=\"struct\" href=\"sui_core/authority/struct.AuthorityState.html\" title=\"struct sui_core::authority::AuthorityState\">AuthorityState</a>","synthetic":false,"types":["sui_core::authority::AuthorityState"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

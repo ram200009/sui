@@ -1,0 +1,4 @@
+(function() {var implementors = {};
+implementors["sui"] = [{"text":"impl <a class=\"trait\" href=\"sui_core/gateway_state/trait.GatewayAPI.html\" title=\"trait sui_core::gateway_state::GatewayAPI\">GatewayAPI</a> for <a class=\"struct\" href=\"sui/rpc_gateway_client/struct.RpcGatewayClient.html\" title=\"struct sui::rpc_gateway_client::RpcGatewayClient\">RpcGatewayClient</a>","synthetic":false,"types":["sui::rpc_gateway_client::RpcGatewayClient"]}];
+implementors["sui_core"] = [];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["wallet"] = [{"text":"impl <a class=\"trait\" href=\"sui/shell/trait.AsyncHandler.html\" title=\"trait sui::shell::AsyncHandler\">AsyncHandler</a>&lt;<a class=\"struct\" href=\"sui/wallet_commands/struct.WalletContext.html\" title=\"struct sui::wallet_commands::WalletContext\">WalletContext</a>&gt; for <a class=\"struct\" href=\"wallet/struct.ClientCommandHandler.html\" title=\"struct wallet::ClientCommandHandler\">ClientCommandHandler</a>","synthetic":false,"types":["wallet::ClientCommandHandler"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

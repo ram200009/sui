@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["DeleteKind",""]],"trait":[["BackingPackageStore",""],["Storage","An abstraction of the (possibly distributed) store for objects, and (soon) events and transactions"]]});

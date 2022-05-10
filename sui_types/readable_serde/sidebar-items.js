@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["encoding",""]],"struct":[["Readable","Use with serde_as to encode/decode bytes to/from Base64/Hex for human-readable serializer and deserializer E : Encoding of the human readable output R : serde_as SerializeAs/DeserializeAs delegation"]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["GetObjectInfoResponse",""],["MoveObjectType",""]],"struct":[["NamedObjectRef",""],["ObjectExistsResponse",""],["ObjectNotExistsResponse",""],["ObjectResponse",""],["SuiTypeTag",""]]});

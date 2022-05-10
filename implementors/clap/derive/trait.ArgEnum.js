@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["sui"] = [{"text":"impl ArgEnum for <a class=\"enum\" href=\"sui/benchmark/bench_types/enum.RunningMode.html\" title=\"enum sui::benchmark::bench_types::RunningMode\">RunningMode</a>","synthetic":false,"types":["sui::benchmark::bench_types::RunningMode"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

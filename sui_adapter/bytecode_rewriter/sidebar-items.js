@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ModuleHandleRewriter","A bytecode rewriting tool for substituting module handles"]]});

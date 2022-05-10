@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Event","User-defined event emitted by executing Move code. Executing a transaction produces an ordered log of these"]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["INIT_FN_NAME",""]],"fn":[["is_object",""],["verify_module","Checks valid rules rules for entry points, both for module initialization and transactions"]]});

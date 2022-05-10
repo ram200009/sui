@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["sui_core"] = [{"text":"impl&lt;S&gt; ResourceResolver for <a class=\"struct\" href=\"sui_core/authority/struct.AuthorityTemporaryStore.html\" title=\"struct sui_core::authority::AuthorityTemporaryStore\">AuthorityTemporaryStore</a>&lt;S&gt;","synthetic":false,"types":["sui_core::authority::temporary_store::AuthorityTemporaryStore"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

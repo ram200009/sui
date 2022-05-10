@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["sui_framework"] = [{"text":"impl TryFromPrimitive for <a class=\"enum\" href=\"sui_framework/enum.EventType.html\" title=\"enum sui_framework::EventType\">EventType</a>","synthetic":false,"types":["sui_framework::EventType"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

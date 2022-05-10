@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["GAS_MODULE_NAME",""],["GAS_STRUCT_NAME",""]],"struct":[["GAS",""],["GasCoin","Rust version of the Move Sui::Coin::CoinSui::SUI::SUI type"]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["BenchmarkResult",""],["BenchmarkType",""],["MicroBenchmarkResult",""],["MicroBenchmarkType",""],["RunningMode",""]],"struct":[["Benchmark",""],["RemoteLoadGenConfig",""]]});

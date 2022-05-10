@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["SUI_AUTHORITY_KEYS",""]],"enum":[["SuiCommand",""]],"fn":[["genesis",""],["make_authority","Spawn all the subsystems run by a Sui authority: a consensus node, a sui authority server, and a consensus listener bridging the consensus node and the sui authority."],["make_server",""]],"struct":[["SuiNetwork",""]]});

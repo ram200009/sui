@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["UpdateItem","Either a freshly sequenced transaction hash or a batch"]],"struct":[["AuthorityBatch",""],["SignedBatch","An transaction signed by a single authority"],["TransactionBatch",""]],"type":[["BatchDigest",""],["TxSequenceNumber",""]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["FaucetError",""],["FaucetRequest",""]],"struct":[["CoinInfo",""],["FaucetReceipt",""],["FaucetResponse",""],["FixedAmountRequest",""],["SimpleFaucet","A naive implementation of a faucet that processes request sequentially"]],"trait":[["Faucet",""]]});
