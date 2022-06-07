@@ -229,8 +229,58 @@ where
         .unwrap();
 }
 
+pub async fn do_transaction_generic<A>(authority: &A, transaction: &Transaction)
+where
+    A: AuthorityAPI + Send + Sync + Clone + 'static,
+{
+    authority
+        .handle_transaction(transaction.clone())
+        .await
+        .unwrap();
+}
+
 pub async fn extract_cert<A>(
     authorities: &[&SafeClient<A>],
+    committee: &Committee,
+    transaction_digest: &TransactionDigest,
+) -> CertifiedTransaction
+where
+    A: AuthorityAPI + Send + Sync + Clone + 'static,
+{
+    let mut votes = vec![];
+    let mut transaction: Option<SignedTransaction> = None;
+    for authority in authorities {
+        if let Ok(TransactionInfoResponse {
+            signed_transaction: Some(signed),
+            ..
+        }) = authority
+            .handle_transaction_info_request(TransactionInfoRequest::from(*transaction_digest))
+            .await
+        {
+            votes.push((
+                signed.auth_sign_info.authority,
+                signed.auth_sign_info.signature,
+            ));
+            if let Some(inner_transaction) = transaction {
+                assert!(inner_transaction.data == signed.data);
+            }
+            transaction = Some(signed);
+        }
+    }
+
+    let stake: StakeUnit = votes.iter().map(|(name, _)| committee.weight(name)).sum();
+    let quorum_threshold = committee.quorum_threshold();
+    assert!(stake >= quorum_threshold);
+
+    CertifiedTransaction::new_with_signatures(
+        committee.epoch(),
+        transaction.unwrap().to_transaction(),
+        votes,
+    )
+}
+
+pub async fn extract_cert_generic<A>(
+    authorities: &[&A],
     committee: &Committee,
     transaction_digest: &TransactionDigest,
 ) -> CertifiedTransaction
@@ -285,6 +335,19 @@ where
         .effects
 }
 
+pub async fn do_cert_generic<A>(authority: &A, cert: &CertifiedTransaction) -> TransactionEffects
+where
+    A: AuthorityAPI + Send + Sync + Clone + 'static,
+{
+    authority
+        .handle_confirmation_transaction(ConfirmationTransaction::new(cert.clone()))
+        .await
+        .unwrap()
+        .signed_effects
+        .unwrap()
+        .effects
+}
+
 pub async fn do_cert_configurable<A>(authority: &A, cert: &CertifiedTransaction)
 where
     A: AuthorityAPI + Send + Sync + Clone + 'static,
@@ -298,6 +361,24 @@ where
 }
 
 pub async fn get_latest_ref<A>(authority: &SafeClient<A>, object_id: ObjectID) -> ObjectRef
+where
+    A: AuthorityAPI + Send + Sync + Clone + 'static,
+{
+    if let Ok(ObjectInfoResponse {
+        requested_object_reference: Some(object_ref),
+        ..
+    }) = authority
+        .handle_object_info_request(ObjectInfoRequest::latest_object_info_request(
+            object_id, None,
+        ))
+        .await
+    {
+        return object_ref;
+    }
+    panic!("Object not found!");
+}
+
+pub async fn get_latest_ref_generic<A>(authority: &A, object_id: ObjectID) -> ObjectRef
 where
     A: AuthorityAPI + Send + Sync + Clone + 'static,
 {

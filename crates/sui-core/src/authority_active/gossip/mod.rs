@@ -305,14 +305,9 @@ where
                             return Err(err);
                         },
 
-                        // The stream has closed, re-request:
+                        // The stream has closed, return:
                         None => {
-                            tokio::time::sleep(Duration::from_millis(10)).await;
-                            let req = BatchInfoRequest {
-                                start: self.max_seq,
-                                length: REQUEST_FOLLOW_NUM_DIGESTS,
-                            };
-                            streamx = Box::pin(self.client.handle_batch_stream(req).await?);
+                            return Err(SuiError::GenericAuthorityError  {error: "Stream was closed by gossip peer".to_string()})
                         },
                     }
                 },

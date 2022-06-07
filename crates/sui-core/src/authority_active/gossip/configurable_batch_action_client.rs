@@ -6,7 +6,6 @@ use crate::authority::AuthorityState;
 use crate::authority::AuthorityStore;
 use crate::authority_aggregator::authority_aggregator_tests::*;
 use crate::authority_client::{AuthorityAPI, BatchInfoResponseItemStream};
-use crate::safe_client::SafeClient;
 use async_trait::async_trait;
 use std::borrow::Borrow;
 use std::collections::BTreeMap;
@@ -38,7 +37,7 @@ fn fix() {
 
 #[derive(Clone)]
 pub struct TestBatch {
-    pub digests: Vec<ExecutionDigests>,
+    pub digests: ExecutionDigests,
 }
 
 #[derive(Clone)]
@@ -166,14 +165,14 @@ impl AuthorityAPI for ConfigurableBatchActionClient {
             match action {
                 BatchActionInternal::EmitUpdateItem(test_batch) => {
                     let mut transactions = Vec::new();
-                    for digest in test_batch.digests.clone() {
-                        transactions.push((seq, digest));
-                        // Safe client requires batches arrive first
-                        items.push(Ok(BatchInfoResponseItem(UpdateItem::Transaction((
-                            seq, digest,
-                        )))));
-                        seq += 1;
-                    }
+                    let digest = test_batch.digests;
+                    transactions.push((seq, digest));
+                    // Safe client requires batches arrive first
+                    items.push(Ok(BatchInfoResponseItem(UpdateItem::Transaction((
+                        seq, digest,
+                    )))));
+                    seq += 1;
+
                     // batch size of 1
                     let new_batch = AuthorityBatch::make_next(&last_batch, &transactions).unwrap();
                     last_batch = new_batch;
@@ -243,7 +242,7 @@ pub async fn init_configurable_authorities(
         }
         states.push(client.state.clone());
         names.push(authority_name);
-        clients.push(SafeClient::new(client, committee.clone(), authority_name));
+        clients.push(client);
     }
 
     // Execute transactions for every EmitUpdateItem Action, use the digest of the transaction to
@@ -255,7 +254,7 @@ pub async fn init_configurable_authorities(
     for (action, gas_object) in authority_action.iter().zip(gas_objects) {
         if let BatchAction::EmitUpdateItem() = action {
             let temp_client = clients[0].borrow();
-            let gas_ref = get_latest_ref(temp_client, gas_object.id()).await;
+            let gas_ref = get_latest_ref_generic(temp_client, gas_object.id()).await;
             let transaction =
                 crate_object_move_transaction(addr1, &key1, addr1, 100, framework_obj_ref, gas_ref);
 
@@ -265,18 +264,16 @@ pub async fn init_configurable_authorities(
                 .take(committee.quorum_threshold() as usize)
             {
                 // Do transactions.
-                do_transaction(tx_client, &transaction).await;
+                do_transaction_generic(tx_client, &transaction).await;
             }
             // Add the digest and number to the internal actions.
+            let executed_digest =
+                ExecutionDigests::new(*transaction.digest(), TransactionEffectsDigest::random());
             let t_b = TestBatch {
-                // TODO: need to put in here the real effects digest
-                digests: vec![ExecutionDigests::new(
-                    *transaction.digest(),
-                    TransactionEffectsDigest::random(),
-                )],
+                digests: executed_digest,
             };
             batch_action_internal.push(BatchActionInternal::EmitUpdateItem(t_b));
-            to_be_executed_digests.push(*transaction.digest());
+            to_be_executed_digests.push(executed_digest);
         }
         if let BatchAction::EmitError() = action {
             batch_action_internal.push(BatchActionInternal::EmitError());
@@ -295,27 +292,45 @@ pub async fn init_configurable_authorities(
         // Get a cert
         let authority_clients_ref: Vec<_> = authority_clients.values().collect();
         let authority_clients_slice = authority_clients_ref.as_slice();
-        let cert1 = extract_cert(authority_clients_slice, &committee, &digest).await;
+        let cert1 =
+            extract_cert_generic(authority_clients_slice, &committee, &digest.transaction).await;
 
+        let mut effects_digest = digest.effects;
         // Submit the cert to 2f+1 authorities.
         for (_, cert_client) in authority_clients
             .iter_mut()
-            // TODO: This only works when every validator has equal stake
             .take(committee.quorum_threshold() as usize)
         {
-            let effects = do_cert(cert_client, &cert1).await;
-            executed_digests.push(ExecutionDigests::new(digest, effects.digest()));
-
-            // Register the internal actions to client
-            cert_client
-                .authority_client_mut()
-                .register_action_sequence(batch_action_internal.clone());
+            let effects = do_cert_generic(cert_client, &cert1).await;
+            effects_digest = effects.digest();
+        }
+        executed_digests.push(ExecutionDigests::new(digest.transaction, effects_digest));
+    }
+    // update the digests
+    let mut action_seq_executed = Vec::new();
+    for action in batch_action_internal.clone() {
+        match action {
+            BatchActionInternal::EmitError() => {
+                action_seq_executed.push(BatchActionInternal::EmitError());
+            }
+            BatchActionInternal::EmitUpdateItem(tb) => {
+                for executed in executed_digests.clone() {
+                    if executed.transaction == tb.digests.transaction {
+                        let t_b = TestBatch { digests: executed };
+                        batch_action_internal.push(BatchActionInternal::EmitUpdateItem(t_b));
+                    }
+                }
+            }
         }
     }
 
-    let authority_clients = authority_clients
-        .into_iter()
-        .map(|(name, client)| (name, client.authority_client().clone()))
-        .collect();
+    // Register the internal actions to client
+    for (_, cert_client) in authority_clients
+        .iter_mut()
+        .take(committee.quorum_threshold() as usize)
+    {
+        cert_client.register_action_sequence(action_seq_executed.clone());
+    }
+
     (authority_clients, states, executed_digests)
 }
