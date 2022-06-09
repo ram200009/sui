@@ -70,7 +70,7 @@ impl NetworkConfig {
             json_rpc_address: utils::available_local_socket_address(),
             consensus_config: None,
             enable_event_processing: true,
-            enable_validator_gossip: true,
+            enable_validator_gossip: false,
             genesis: validator_config.genesis.clone(),
         }
     }

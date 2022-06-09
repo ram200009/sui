@@ -9,7 +9,7 @@ use sui_config::NodeConfig;
 use sui_core::authority_server::ValidatorService;
 use sui_core::{
     authority::{AuthorityState, AuthorityStore},
-    authority_active::{gossip::gossip_process_with_start_seq, ActiveAuthority},
+    authority_active::ActiveAuthority,
     authority_client::NetworkAuthorityClient,
     checkpoints::CheckpointStore,
 };
@@ -75,9 +75,7 @@ impl SuiNode {
             .await,
         );
 
-        let gossip_handle = if config.consensus_config().is_some() {
-            None
-        } else {
+        let gossip_handle = if config.enable_validator_gossip {
             let mut net_config = mysten_network::config::Config::new();
             net_config.connect_timeout = Some(Duration::from_secs(5));
             net_config.request_timeout = Some(Duration::from_secs(5));
@@ -94,18 +92,11 @@ impl SuiNode {
 
             let active_authority =
                 ActiveAuthority::new(state.clone(), follower_store, authority_clients)?;
+            let degree = active_authority.state.committee.load().voting_rights.len();
 
-            // Start following validators
-            Some(tokio::task::spawn(async move {
-                gossip_process_with_start_seq(
-                    &active_authority,
-                    // listen to all authorities (note that gossip_process caps this to total minus 1.)
-                    active_authority.state.committee.load().voting_rights.len(),
-                    // start receiving the earliest TXes the validator has.
-                    Some(0),
-                )
-                .await;
-            }))
+            Some(active_authority.spawn_gossip_process(degree).await)
+        } else {
+            None
         };
 
         let batch_subsystem_handle = {
