@@ -55,7 +55,9 @@ fn test_signed_values() {
             10000,
         ),
         &sender_sec,
-    );
+    )
+    .verify()
+    .unwrap();
     let bad_transaction = Transaction::from_data(
         TransactionData::new_transfer(
             _a2,
@@ -65,7 +67,9 @@ fn test_signed_values() {
             10000,
         ),
         &sender_sec2,
-    );
+    )
+    .verify()
+    .unwrap();
 
     let v = SignedTransaction::new(
         committee.epoch(),
@@ -128,7 +132,9 @@ fn test_certificates() {
             10000,
         ),
         &sender_sec,
-    );
+    )
+    .verify()
+    .unwrap();
     let bad_transaction = Transaction::from_data(
         TransactionData::new_transfer(
             a2,
@@ -159,7 +165,7 @@ fn test_certificates() {
         &sec3,
     );
 
-    let mut builder = SignatureAggregator::try_new(transaction.clone(), &committee).unwrap();
+    let mut builder = SignatureAggregator::new(transaction.clone(), &committee);
     assert!(builder
         .append(
             v1.auth_sign_info.authority,
@@ -174,7 +180,7 @@ fn test_certificates() {
 
     assert!(c.verify(&committee).is_ok());
 
-    let mut builder = SignatureAggregator::try_new(transaction, &committee).unwrap();
+    let mut builder = SignatureAggregator::new(transaction, &committee);
     assert!(builder
         .append(v1.auth_sign_info.authority, v1.auth_sign_info.signature)
         .unwrap()
@@ -385,7 +391,9 @@ fn test_digest_caching() {
     let transaction = Transaction::from_data(
         TransactionData::new_transfer(sa1, random_object_ref(), sa2, random_object_ref(), 10000),
         &ssec2,
-    );
+    )
+    .verify()
+    .unwrap();
 
     let mut signed_tx = SignedTransaction::new(
         committee.epoch(),
@@ -393,7 +401,7 @@ fn test_digest_caching() {
         AuthorityPublicKeyBytes::from(sec1.public()),
         &sec1,
     );
-    assert!(signed_tx.verify(&committee).is_ok());
+    assert!(signed_tx.verify_signatures(&committee).is_ok());
 
     let initial_digest = *signed_tx.digest();
 
@@ -482,8 +490,12 @@ fn test_user_signature_committed_in_signed_transactions() {
         random_object_ref(),
         10000,
     );
-    let transaction_a = Transaction::from_data(tx_data.clone(), &sender_sec);
-    let transaction_b = Transaction::from_data(tx_data, &sender_sec2);
+    let transaction_a = Transaction::from_data(tx_data.clone(), &sender_sec)
+        .verify()
+        .unwrap();
+    let transaction_b = Transaction::from_data(tx_data, &sender_sec2)
+        .verify()
+        .unwrap();
     let signed_tx_a = SignedTransaction::new(
         0,
         transaction_a.clone(),
@@ -616,7 +628,9 @@ fn verify_sender_signature_correctly_with_flag() {
         10000,
     );
 
-    let transaction = Transaction::from_data(tx_data, &sender_kp);
+    let transaction = Transaction::from_data(tx_data, &sender_kp)
+        .verify()
+        .unwrap();
 
     // create tx also signed by authority
     let signed_tx = SignedTransaction::new(
@@ -648,7 +662,9 @@ fn verify_sender_signature_correctly_with_flag() {
             10000,
         ),
         &sender_kp_2,
-    );
+    )
+    .verify()
+    .unwrap();
 
     let signed_tx_1 = SignedTransaction::new(
         committee.epoch(),

@@ -26,8 +26,8 @@ use sui_types::gas_coin::GasCoin;
 use sui_types::messages::SignedTransactionEffects;
 use sui_types::messages::{CallArg, ExecutionStatus, TransactionEffects};
 use sui_types::messages::{
-    CertifiedTransaction, ObjectArg, SignatureAggregator, SignedTransaction, Transaction,
-    TransactionData,
+    CertifiedTransaction, ObjectArg, SignatureAggregator, TransactionData,
+    VerifiedSignedTransaction, VerifiedTransaction,
 };
 use sui_types::object::Object;
 use sui_types::object::Owner;
@@ -130,7 +130,7 @@ pub async fn get_account_and_gas_objects(
 pub async fn make_transactions_with_wallet_context(
     context: &mut WalletContext,
     max_txn_num: usize,
-) -> Vec<Transaction> {
+) -> Vec<VerifiedTransaction> {
     let recipient = get_key_pair::<AuthorityKeyPair>().0;
     let accounts_and_objs = get_account_and_gas_objects(context).await;
     let mut res = Vec::with_capacity(max_txn_num);
@@ -162,7 +162,7 @@ pub async fn make_counter_increment_transaction_with_wallet_context(
     counter_id: ObjectID,
     counter_initial_shared_version: SequenceNumber,
     gas_object_ref: Option<ObjectRef>,
-) -> Transaction {
+) -> VerifiedTransaction {
     let package_object_ref = genesis::get_framework_object_ref();
     let gas_object_ref = match gas_object_ref {
         Some(obj_ref) => obj_ref,
@@ -189,7 +189,7 @@ pub async fn make_counter_increment_transaction_with_wallet_context(
 /// Make a few different single-writer test transactions owned by specific addresses.
 pub fn make_transactions_with_pre_genesis_objects(
     keys: Keystore,
-) -> (Vec<Transaction>, Vec<Object>) {
+) -> (Vec<VerifiedTransaction>, Vec<Object>) {
     // The key pair of the recipient of the transaction.
     let recipient = get_key_pair::<AuthorityKeyPair>().0;
 
@@ -226,7 +226,7 @@ pub fn make_transactions_with_pre_genesis_objects(
 }
 
 /// Make a few different test transaction containing the same shared object.
-pub fn test_shared_object_transactions() -> Vec<Transaction> {
+pub fn test_shared_object_transactions() -> Vec<VerifiedTransaction> {
     // The key pair of the sender of the transaction.
     let (sender, keypair) = test_account_keys().pop().unwrap();
 
@@ -269,7 +269,7 @@ pub fn create_publish_move_package_transaction(
     path: PathBuf,
     sender: SuiAddress,
     keypair: &AccountKeyPair,
-) -> Transaction {
+) -> VerifiedTransaction {
     let build_config = BuildConfig::default();
     let modules = sui_framework::build_move_package(&path, build_config).unwrap();
 
@@ -291,7 +291,7 @@ pub fn make_transfer_sui_transaction(
     amount: Option<u64>,
     sender: SuiAddress,
     keypair: &AccountKeyPair,
-) -> Transaction {
+) -> VerifiedTransaction {
     let data = TransactionData::new_transfer_sui(recipient, sender, amount, gas_object, MAX_GAS);
     to_sender_signed_transaction(data, keypair)
 }
@@ -302,7 +302,7 @@ pub fn make_transfer_object_transaction(
     sender: SuiAddress,
     keypair: &AccountKeyPair,
     recipient: SuiAddress,
-) -> Transaction {
+) -> VerifiedTransaction {
     let data = TransactionData::new_transfer(recipient, object_ref, sender, gas_object, MAX_GAS);
     to_sender_signed_transaction(data, keypair)
 }
@@ -313,12 +313,12 @@ pub fn make_transfer_object_transaction_with_wallet_context(
     context: &WalletContext,
     sender: SuiAddress,
     recipient: SuiAddress,
-) -> Transaction {
+) -> VerifiedTransaction {
     let data = TransactionData::new_transfer(recipient, object_ref, sender, gas_object, MAX_GAS);
     to_sender_signed_transaction(data, context.config.keystore.get_key(&sender).unwrap())
 }
 
-pub fn make_publish_basics_transaction(gas_object: ObjectRef) -> Transaction {
+pub fn make_publish_basics_transaction(gas_object: ObjectRef) -> VerifiedTransaction {
     let (sender, keypair) = test_account_keys().pop().unwrap();
     let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     path.push("../../sui_programmability/examples/basics");
@@ -356,7 +356,7 @@ pub fn make_counter_create_transaction(
     package_ref: ObjectRef,
     sender: SuiAddress,
     keypair: &AccountKeyPair,
-) -> Transaction {
+) -> VerifiedTransaction {
     let data = TransactionData::new_move_call(
         sender,
         package_ref,
@@ -377,7 +377,7 @@ pub fn make_counter_increment_transaction(
     counter_initial_shared_version: SequenceNumber,
     sender: SuiAddress,
     keypair: &AccountKeyPair,
-) -> Transaction {
+) -> VerifiedTransaction {
     let data = TransactionData::new_move_call(
         sender,
         package_ref,
@@ -401,7 +401,7 @@ pub fn move_transaction(
     function: &'static str,
     package_ref: ObjectRef,
     arguments: Vec<CallArg>,
-) -> Transaction {
+) -> VerifiedTransaction {
     move_transaction_with_type_tags(gas_object, module, function, package_ref, &[], arguments)
 }
 
@@ -413,7 +413,7 @@ pub fn move_transaction_with_type_tags(
     package_ref: ObjectRef,
     type_args: &[TypeTag],
     arguments: Vec<CallArg>,
-) -> Transaction {
+) -> VerifiedTransaction {
     let (sender, keypair) = test_account_keys().pop().unwrap();
 
     // Make the transaction.
@@ -432,7 +432,7 @@ pub fn move_transaction_with_type_tags(
 
 /// Make a test certificates for each input transaction.
 pub fn make_tx_certs_and_signed_effects(
-    transactions: Vec<Transaction>,
+    transactions: Vec<VerifiedTransaction>,
 ) -> (Vec<CertifiedTransaction>, Vec<SignedTransactionEffects>) {
     let committee = test_committee();
     make_tx_certs_and_signed_effects_with_committee(transactions, &committee)
@@ -440,16 +440,21 @@ pub fn make_tx_certs_and_signed_effects(
 
 /// Make a test certificates for each input transaction.
 pub fn make_tx_certs_and_signed_effects_with_committee(
-    transactions: Vec<Transaction>,
+    transactions: Vec<VerifiedTransaction>,
     committee: &Committee,
 ) -> (Vec<CertifiedTransaction>, Vec<SignedTransactionEffects>) {
     let mut tx_certs = Vec::new();
     let mut effect_sigs = Vec::new();
     for tx in transactions {
-        let mut signed_tx_aggregator = SignatureAggregator::try_new(tx.clone(), committee).unwrap();
+        let mut signed_tx_aggregator = SignatureAggregator::new(tx.clone(), committee);
         for (key, _, _, _) in test_validator_keys() {
-            let vote =
-                SignedTransaction::new(committee.epoch, tx.clone(), key.public().into(), &key);
+            let vote = VerifiedSignedTransaction::new(
+                committee.epoch,
+                tx.clone(),
+                key.public().into(),
+                &key,
+            )
+            .into_inner();
 
             if let Some(tx_cert) = signed_tx_aggregator
                 .append(vote.auth_sign_info.authority, vote.auth_sign_info.signature)
@@ -470,7 +475,7 @@ pub fn make_tx_certs_and_signed_effects_with_committee(
     (tx_certs, effect_sigs)
 }
 
-fn dummy_transaction_effects(tx: &Transaction) -> TransactionEffects {
+fn dummy_transaction_effects(tx: &VerifiedTransaction) -> TransactionEffects {
     TransactionEffects {
         status: ExecutionStatus::Success,
         gas_used: GasCostSummary {

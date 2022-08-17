@@ -115,7 +115,7 @@ async fn test_start_epoch_change() {
     );
 
     // Test that when validator is halted, we cannot send any certificate.
-    let mut sigs = SignatureAggregator::try_new(transaction.clone(), &net.committee).unwrap();
+    let mut sigs = SignatureAggregator::new(transaction.clone(), &net.committee);
     let mut cert = None;
     for state in &states {
         cert = sigs
@@ -125,7 +125,7 @@ async fn test_start_epoch_change() {
             )
             .unwrap();
     }
-    let certificate = cert.unwrap();
+    let certificate = cert.unwrap().verify(&net.committee).unwrap();
     assert_eq!(
         state.handle_certificate(&certificate).await.unwrap_err(),
         SuiError::ValidatorHaltedAtEpochEnd

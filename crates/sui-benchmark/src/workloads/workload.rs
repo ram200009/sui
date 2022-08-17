@@ -10,8 +10,7 @@ use sui_core::{
 };
 use sui_types::{
     base_types::{ObjectID, ObjectRef},
-    crypto::EmptySignInfo,
-    messages::{TransactionEffects, TransactionEnvelope},
+    messages::TransactionEffects,
     object::{Object, ObjectRead, Owner},
 };
 
@@ -19,7 +18,9 @@ use futures::FutureExt;
 use sui_types::{
     base_types::SuiAddress,
     crypto::AccountKeyPair,
-    messages::{QuorumDriverRequest, QuorumDriverRequestType, QuorumDriverResponse, Transaction},
+    messages::{
+        QuorumDriverRequest, QuorumDriverRequestType, QuorumDriverResponse, VerifiedTransaction,
+    },
 };
 use test_utils::messages::make_transfer_sui_transaction;
 use tracing::error;
@@ -93,7 +94,7 @@ pub async fn get_latest(
 }
 
 pub async fn submit_transaction(
-    transaction: Transaction,
+    transaction: VerifiedTransaction,
     aggregator: Arc<AuthorityAggregator<NetworkAuthorityClient>>,
 ) -> Option<TransactionEffects> {
     let qd = QuorumDriverHandler::new(aggregator.clone(), QuorumDriverMetrics::new_for_tests());
@@ -119,7 +120,7 @@ pub trait Payload: Send + Sync {
         new_object: ObjectRef,
         new_gas: ObjectRef,
     ) -> Box<dyn Payload>;
-    fn make_transaction(&self) -> TransactionEnvelope<EmptySignInfo>;
+    fn make_transaction(&self) -> VerifiedTransaction;
     fn get_object_id(&self) -> ObjectID;
     fn get_workload_type(&self) -> WorkloadType;
 }
@@ -155,7 +156,7 @@ impl Payload for CombinationPayload {
             rng: self.rng,
         })
     }
-    fn make_transaction(&self) -> TransactionEnvelope<EmptySignInfo> {
+    fn make_transaction(&self) -> VerifiedTransaction {
         let curr = self.payloads.get(self.curr_index).unwrap();
         curr.make_transaction()
     }

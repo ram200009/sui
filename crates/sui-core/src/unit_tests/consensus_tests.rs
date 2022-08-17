@@ -84,9 +84,8 @@ pub async fn test_certificates(authority: &AuthorityState) -> Vec<CertifiedTrans
             .handle_transaction(transaction.clone())
             .await
             .unwrap();
-        let vote = response.signed_transaction.unwrap();
-        let certificate = SignatureAggregator::try_new(transaction, &authority.committee.load())
-            .unwrap()
+        let vote = response.signed_transaction.unwrap().into_inner();
+        let certificate = SignatureAggregator::new(transaction, &authority.committee.load())
             .append(vote.auth_sign_info.authority, vote.auth_sign_info.signature)
             .unwrap()
             .unwrap();
@@ -159,7 +158,6 @@ async fn submit_transaction_to_consensus() {
     // Make a new consensus submitter instance.
     let submitter = ConsensusAdapter::new(
         consensus_address.clone(),
-        committee,
         tx_consensus_listener,
         /* timeout */ Duration::from_secs(5),
         metrics,
@@ -196,6 +194,8 @@ async fn submit_transaction_to_consensus() {
             replier.0.send(result).unwrap();
         }
     });
+
+    let certificate = certificate.verify(&committee).unwrap();
 
     // Submit the transaction and ensure the submitter reports success to the caller. Note
     // that consensus may drop some transactions (so we may need to resubmit them).

@@ -967,7 +967,7 @@ where
             .ok_or(SuiError::CertificateNotfound {
                 certificate_digest: tx_digest.transaction,
             })?;
-        diff_certs.insert(*tx_digest, cert);
+        diff_certs.insert(*tx_digest, cert.into());
     }
 
     // These are the transactions that the other node has, so we have to potentially
@@ -988,7 +988,7 @@ where
             .ok_or(SuiError::CertificateNotfound {
                 certificate_digest: tx_digest.transaction,
             })?;
-        diff_certs.insert(*tx_digest, cert);
+        diff_certs.insert(*tx_digest, cert.into());
     }
 
     if !diff_certs.is_empty() {

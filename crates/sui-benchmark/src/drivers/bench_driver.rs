@@ -34,9 +34,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use sui_core::authority_client::NetworkAuthorityClient;
 use sui_core::quorum_driver::{QuorumDriverHandler, QuorumDriverMetrics};
-use sui_types::crypto::EmptySignInfo;
 use sui_types::messages::{
-    QuorumDriverRequest, QuorumDriverRequestType, QuorumDriverResponse, TransactionEnvelope,
+    QuorumDriverRequest, QuorumDriverRequestType, QuorumDriverResponse, VerifiedTransaction,
 };
 use tokio::sync::Barrier;
 use tokio::time;
@@ -126,7 +125,7 @@ struct Stats {
     pub bench_stats: BenchmarkStats,
 }
 
-type RetryType = Box<(TransactionEnvelope<EmptySignInfo>, Box<dyn Payload>)>;
+type RetryType = Box<(VerifiedTransaction, Box<dyn Payload>)>;
 enum NextOp {
     Response(Option<(Duration, Box<dyn Payload>)>),
     Retry(RetryType),

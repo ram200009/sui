@@ -59,7 +59,7 @@ use sui_types::committee::EpochId;
 use sui_types::crypto::{AuthorityKeyPair, NetworkKeyPair};
 use sui_types::messages_checkpoint::{
     AuthenticatedCheckpoint, CertifiedCheckpointSummary, CheckpointRequest, CheckpointRequestType,
-    CheckpointResponse, CheckpointSequenceNumber,
+    CheckpointResponse, CheckpointSequenceNumber, VerifiedCheckpointFragment,
 };
 use sui_types::object::{Owner, PastObjectRead};
 use sui_types::query::TransactionQuery;
@@ -123,7 +123,7 @@ pub const MAX_ITEMS_LIMIT: u64 = 1_000;
 const BROADCAST_CAPACITY: usize = 10_000;
 
 pub(crate) const MAX_TX_RECOVERY_RETRY: u32 = 3;
-type CertTxGuard<'a> = DBTxGuard<'a, CertifiedTransaction>;
+type CertTxGuard<'a> = DBTxGuard<'a, VerifiedCertificate>;
 
 pub type ReconfigConsensusMessage = (
     AuthorityKeyPair,
@@ -514,8 +514,8 @@ impl AuthorityState {
 
     async fn handle_transaction_impl(
         &self,
-        transaction: Transaction,
-    ) -> Result<TransactionInfoResponse, SuiError> {
+        transaction: VerifiedTransaction,
+    ) -> Result<VerifiedTransactionInfoResponse, SuiError> {
         let transaction_digest = *transaction.digest();
         // Ensure an idempotent answer.
         // If a transaction was signed in a previous epoch, we should no longer reuse it.
@@ -546,7 +546,7 @@ impl AuthorityState {
         let owned_objects = input_objects.filter_owned_objects();
 
         let signed_transaction =
-            SignedTransaction::new(self.epoch(), transaction, self.name, &*self.secret);
+            VerifiedSignedTransaction::new(self.epoch(), transaction, self.name, &*self.secret);
 
         // Check and write locks, to signed transaction, into the database
         // The call to self.set_transaction_lock checks the lock is not conflicting,
@@ -562,18 +562,13 @@ impl AuthorityState {
     /// Initiate a new transaction.
     pub async fn handle_transaction(
         &self,
-        transaction: Transaction,
-    ) -> Result<TransactionInfoResponse, SuiError> {
+        transaction: VerifiedTransaction,
+    ) -> Result<VerifiedTransactionInfoResponse, SuiError> {
         let transaction_digest = *transaction.digest();
         debug!(tx_digest=?transaction_digest, "handle_transaction. Tx data: {:?}", transaction.signed_data.data);
         let _metrics_guard = start_timer(self.metrics.handle_transaction_latency.clone());
 
         self.metrics.tx_orders.inc();
-        // Check the sender's signature.
-        transaction.verify().map_err(|e| {
-            self.metrics.signature_errors.inc();
-            e
-        })?;
 
         let response = self.handle_transaction_impl(transaction).await;
         match response {
@@ -601,7 +596,7 @@ impl AuthorityState {
     #[instrument(level = "trace", skip_all)]
     pub async fn handle_certificate_with_effects<S>(
         &self,
-        certificate: &CertifiedTransaction,
+        certificate: &VerifiedCertificate,
         // NOTE: the caller of this (node_sync) must promise to wait until it
         // knows for sure this tx is finalized, namely, it has seen a
         // CertifiedTransactionEffects or at least f+1 identifical effects
@@ -653,8 +648,8 @@ impl AuthorityState {
     #[instrument(level = "trace", skip_all)]
     pub async fn handle_certificate(
         &self,
-        certificate: &CertifiedTransaction,
-    ) -> SuiResult<TransactionInfoResponse> {
+        certificate: &VerifiedCertificate,
+    ) -> SuiResult<VerifiedTransactionInfoResponse> {
         let _metrics_guard = start_timer(self.metrics.handle_certificate_latency.clone());
         self.handle_certificate_impl(certificate, false).await
     }
@@ -662,17 +657,17 @@ impl AuthorityState {
     #[instrument(level = "trace", skip_all)]
     pub async fn handle_certificate_bypass_validator_halt(
         &self,
-        certificate: &CertifiedTransaction,
-    ) -> SuiResult<TransactionInfoResponse> {
+        certificate: &VerifiedCertificate,
+    ) -> SuiResult<VerifiedTransactionInfoResponse> {
         self.handle_certificate_impl(certificate, true).await
     }
 
     #[instrument(level = "trace", skip_all)]
     async fn handle_certificate_impl(
         &self,
-        certificate: &CertifiedTransaction,
+        certificate: &VerifiedCertificate,
         bypass_validator_halt: bool,
-    ) -> SuiResult<TransactionInfoResponse> {
+    ) -> SuiResult<VerifiedTransactionInfoResponse> {
         self.metrics.total_cert_attempts.inc();
         if self.is_fullnode() {
             return Err(SuiError::GenericStorageError(
@@ -680,7 +675,7 @@ impl AuthorityState {
             ));
         }
 
-        let tx_digest = certificate.digest();
+        let tx_digest = *certificate.digest();
         debug!(?tx_digest, "handle_confirmation_transaction");
 
         // This acquires a lock on the tx digest to prevent multiple concurrent executions of the
@@ -775,9 +770,9 @@ impl AuthorityState {
     async fn process_certificate(
         &self,
         tx_guard: CertTxGuard<'_>,
-        certificate: &CertifiedTransaction,
+        certificate: &VerifiedCertificate,
         mut bypass_validator_halt: bool,
-    ) -> SuiResult<TransactionInfoResponse> {
+    ) -> SuiResult<VerifiedTransactionInfoResponse> {
         let digest = *certificate.digest();
         // The cert could have been processed by a concurrent attempt of the same cert, so check if
         // the effects have already been written.
@@ -794,15 +789,6 @@ impl AuthorityState {
             tx_guard.release();
             return Err(SuiError::ValidatorHaltedAtEpochEnd);
         }
-
-        // Check the certificate signatures.
-        let committee = &self.committee.load();
-        tracing::trace_span!("cert_check_signature")
-            .in_scope(|| certificate.verify(committee))
-            .map_err(|e| {
-                self.metrics.signature_errors.inc();
-                e
-            })?;
 
         // Errors originating from prepare_certificate may be transient (failure to read locks) or
         // non-transient (transaction input is invalid, move vm errors). However, all errors from
@@ -866,7 +852,7 @@ impl AuthorityState {
             .batch_size
             .observe(certificate.signed_data.data.kind.batch_size() as f64);
 
-        Ok(TransactionInfoResponse {
+        Ok(VerifiedTransactionInfoResponse {
             signed_transaction: self.database.get_transaction(&digest)?,
             certified_transaction: Some(certificate.clone()),
             signed_effects: Some(signed_effects),
@@ -885,7 +871,7 @@ impl AuthorityState {
     #[instrument(level = "trace", skip_all)]
     async fn prepare_certificate(
         &self,
-        certificate: &CertifiedTransaction,
+        certificate: &VerifiedCertificate,
         transaction_digest: TransactionDigest,
     ) -> SuiResult<(InnerTemporaryStore, SignedTransactionEffects)> {
         let _metrics_guard = start_timer(self.metrics.prepare_certificate_latency.clone());
@@ -935,12 +921,12 @@ impl AuthorityState {
 
     pub async fn dry_run_transaction(
         &self,
-        transaction: &Transaction,
+        transaction: VerifiedTransaction,
         transaction_digest: TransactionDigest,
     ) -> Result<SuiTransactionEffects, anyhow::Error> {
-        transaction.verify()?;
         let (gas_status, input_objects) =
-            transaction_input_checker::check_transaction_input(&self.database, transaction).await?;
+            transaction_input_checker::check_transaction_input(&self.database, &transaction)
+                .await?;
         let shared_object_refs = input_objects.filter_shared_objects();
 
         let transaction_dependencies = input_objects.transaction_dependencies();
@@ -968,7 +954,7 @@ impl AuthorityState {
     pub async fn get_tx_info_already_executed(
         &self,
         digest: &TransactionDigest,
-    ) -> SuiResult<Option<TransactionInfoResponse>> {
+    ) -> SuiResult<Option<VerifiedTransactionInfoResponse>> {
         if self.database.effects_exists(digest)? {
             debug!("Transaction {digest:?} already executed");
             Ok(Some(self.make_transaction_info(digest).await?))
@@ -983,7 +969,7 @@ impl AuthorityState {
         indexes: &IndexStore,
         seq: TxSequenceNumber,
         digest: &TransactionDigest,
-        cert: &CertifiedTransaction,
+        cert: &VerifiedCertificate,
         effects: &SignedTransactionEffects,
         timestamp_ms: u64,
     ) -> SuiResult {
@@ -1018,7 +1004,7 @@ impl AuthorityState {
         // Load cert and effects.
         let info = self.make_transaction_info(digest).await?;
         let (cert, effects) = match info {
-            TransactionInfoResponse {
+            VerifiedTransactionInfoResponse {
                 certified_transaction: Some(cert),
                 signed_effects: Some(effects),
                 ..
@@ -1042,7 +1028,9 @@ impl AuthorityState {
 
         // Stream transaction
         if let Some(transaction_streamer) = &self.transaction_streamer {
-            transaction_streamer.enqueue((cert, effects.clone())).await;
+            transaction_streamer
+                .enqueue((cert.into(), effects.clone()))
+                .await;
             self.metrics
                 .post_processing_total_tx_added_to_streamer
                 .inc();
@@ -1118,7 +1106,7 @@ impl AuthorityState {
     pub async fn handle_transaction_info_request(
         &self,
         request: TransactionInfoRequest,
-    ) -> Result<TransactionInfoResponse, SuiError> {
+    ) -> Result<VerifiedTransactionInfoResponse, SuiError> {
         self.make_transaction_info(&request.transaction_digest)
             .await
     }
@@ -1133,7 +1121,7 @@ impl AuthorityState {
     pub async fn handle_object_info_request(
         &self,
         request: ObjectInfoRequest,
-    ) -> Result<ObjectInfoResponse, SuiError> {
+    ) -> Result<VerifiedObjectInfoResponse, SuiError> {
         let ref_and_digest = match request.request_kind {
             ObjectInfoRequestKind::PastObjectInfo(seq)
             | ObjectInfoRequestKind::PastObjectInfoDebug(seq, _) => {
@@ -1591,7 +1579,7 @@ impl AuthorityState {
     /// downloaded in the execution driver.
     pub fn add_pending_certificates(
         &self,
-        certs: Vec<(TransactionDigest, Option<CertifiedTransaction>)>,
+        certs: Vec<(TransactionDigest, Option<VerifiedCertificate>)>,
     ) -> SuiResult<()> {
         self.node_sync_store
             .batch_store_certs(certs.iter().filter_map(|(_, cert_opt)| cert_opt.clone()))?;
@@ -1802,7 +1790,7 @@ impl AuthorityState {
     pub async fn get_transaction(
         &self,
         digest: TransactionDigest,
-    ) -> Result<(CertifiedTransaction, TransactionEffects), anyhow::Error> {
+    ) -> Result<(VerifiedCertificate, TransactionEffects), anyhow::Error> {
         QueryHelpers::get_transaction(&self.database, &digest)
     }
 
@@ -2024,7 +2012,7 @@ impl AuthorityState {
     async fn make_transaction_info(
         &self,
         transaction_digest: &TransactionDigest,
-    ) -> Result<TransactionInfoResponse, SuiError> {
+    ) -> Result<VerifiedTransactionInfoResponse, SuiError> {
         self.database
             .get_signed_transaction_info(transaction_digest)
     }
@@ -2045,7 +2033,7 @@ impl AuthorityState {
     pub async fn set_transaction_lock(
         &self,
         mutable_input_objects: &[ObjectRef],
-        signed_transaction: SignedTransaction,
+        signed_transaction: VerifiedSignedTransaction,
     ) -> Result<(), SuiError> {
         self.database
             .lock_and_write_transaction(self.epoch(), mutable_input_objects, signed_transaction)
@@ -2058,7 +2046,7 @@ impl AuthorityState {
     pub(crate) async fn commit_certificate(
         &self,
         inner_temporary_store: InnerTemporaryStore,
-        certificate: &CertifiedTransaction,
+        certificate: &VerifiedCertificate,
         signed_effects: &SignedTransactionEffects,
         notifier_ticket: TransactionNotifierTicket,
     ) -> SuiResult {
@@ -2102,7 +2090,7 @@ impl AuthorityState {
     /// Check whether a shared-object certificate has already been given shared-locks.
     pub async fn transaction_shared_locks_exist(
         &self,
-        certificate: &CertifiedTransaction,
+        certificate: &VerifiedCertificate,
     ) -> SuiResult<bool> {
         let digest = certificate.digest();
         let shared_inputs = certificate.shared_input_objects().map(|(id, _)| id);
@@ -2116,7 +2104,7 @@ impl AuthorityState {
     pub async fn get_transaction_lock(
         &self,
         object_ref: &ObjectRef,
-    ) -> Result<Option<SignedTransaction>, SuiError> {
+    ) -> Result<Option<VerifiedSignedTransaction>, SuiError> {
         self.database
             .get_object_locking_transaction(object_ref)
             .await
@@ -2128,7 +2116,7 @@ impl AuthorityState {
     pub async fn read_certificate(
         &self,
         digest: &TransactionDigest,
-    ) -> Result<Option<CertifiedTransaction>, SuiError> {
+    ) -> Result<Option<VerifiedCertificate>, SuiError> {
         self.database.read_certificate(digest)
     }
 
@@ -2174,7 +2162,7 @@ impl AuthorityState {
 
         // Check the certificate. Remember that Byzantine authorities may input anything into
         // consensus.
-        certificate.verify(&self.committee.load())
+        certificate.verify_signatures(&self.committee.load())
     }
 
     /// Verifies transaction signatures and other data
@@ -2215,7 +2203,7 @@ impl AuthorityState {
                     })?;
             }
             ConsensusTransactionKind::Checkpoint(fragment) => {
-                fragment.verify(&committee).map_err(|err| {
+                fragment.verify_signatures(&committee).map_err(|err| {
                     warn!(
                         "Ignoring malformed fragment (failed to verify) from {}: {:?}",
                         transaction.consensus_output.certificate.header.author, err
@@ -2246,6 +2234,10 @@ impl AuthorityState {
         let tracking_id = transaction.get_tracking_id();
         match transaction.kind {
             ConsensusTransactionKind::UserTransaction(certificate) => {
+                // Safe because signatures are verified when VerifiedSequencedConsensusTransaction
+                // is constructed.
+                let certificate = VerifiedCertificate::new_unchecked(*certificate);
+
                 if self
                     .checkpoints
                     .lock()
@@ -2264,16 +2256,20 @@ impl AuthorityState {
                 // Schedule the certificate for execution
                 self.add_pending_certificates(vec![(
                     *certificate.digest(),
-                    Some(*certificate.clone()),
+                    Some(certificate.clone()),
                 )])?;
 
                 self.database
-                    .lock_shared_objects(*certificate, consensus_index)
+                    .lock_shared_objects(&certificate, consensus_index)
                     .await?;
 
                 Ok(())
             }
             ConsensusTransactionKind::Checkpoint(fragment) => {
+                // Safe because signatures are verified when VerifiedSequencedConsensusTransaction
+                // is constructed.
+                let fragment = VerifiedCheckpointFragment::new_unchecked(*fragment);
+
                 let cp_seq = fragment.proposer_sequence_number();
                 debug!(
                     ?consensus_index,
@@ -2286,7 +2282,7 @@ impl AuthorityState {
                 let mut checkpoint = self.checkpoints.lock();
                 checkpoint.handle_internal_fragment(
                     consensus_index.index,
-                    *fragment,
+                    fragment,
                     self,
                     &self.committee.load(),
                 )?;
