@@ -3425,7 +3425,6 @@ dependencies = [
  "futures",
  "lazy_static 1.4.0",
  "libc",
- "log",
  "madsim-macros",
  "naive-timer",
  "rand 0.8.5",
@@ -3433,6 +3432,8 @@ dependencies = [
  "serde 1.0.144",
  "tokio-util 0.7.3",
  "toml",
+ "tracing",
+ "tracing-subscriber 0.3.15",
 ]
 
 [[package]]
@@ -6991,7 +6992,6 @@ dependencies = [
  "jemalloc-ctl",
  "jemallocator",
  "jsonrpsee",
- "madsim",
  "move-cli",
  "move-core-types",
  "move-package",
@@ -7017,6 +7017,7 @@ dependencies = [
  "sui-node",
  "sui-quorum-driver",
  "sui-sdk",
+ "sui-simulator",
  "sui-swarm",
  "sui-types",
  "telemetry-subscribers 0.1.0 (git+https://github.com/MystenLabs/mysten-infra?rev=7ef7415a4e11cf68fa68ce9db884c46e704e0445)",
@@ -7143,7 +7144,6 @@ dependencies = [
  "dirs",
  "fastcrypto",
  "insta",
- "madsim",
  "move-binary-format",
  "move-core-types",
  "move-package",
@@ -7157,6 +7157,7 @@ dependencies = [
  "sha3 0.10.2",
  "sui-adapter",
  "sui-framework",
+ "sui-simulator",
  "sui-types",
  "tempfile",
  "tracing",
@@ -7580,6 +7581,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sui-simulator"
+version = "0.7.0"
+dependencies = [
+ "madsim",
+]
+
+[[package]]
 name = "sui-storage"
 version = "0.1.0"
 dependencies = [
@@ -7619,11 +7627,11 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "futures",
- "madsim",
  "mysten-network 0.1.0 (git+https://github.com/MystenLabs/mysten-infra?rev=7ef7415a4e11cf68fa68ce9db884c46e704e0445)",
  "rand 0.8.5",
  "sui-config",
  "sui-node",
+ "sui-simulator",
  "sui-types",
  "tap",
  "telemetry-subscribers 0.1.0 (git+https://github.com/MystenLabs/mysten-infra?rev=7ef7415a4e11cf68fa68ce9db884c46e704e0445)",
