@@ -41,11 +41,12 @@ else
   echo "Using MADSIM_TEST_SEED=$MADSIM_TEST_SEED from the environment"
 fi
 
+#  --config 'patch.crates-io.tokio.git = "https://github.com/MystenLabs/mysten-sim.git"' \
+#  --config 'patch.crates-io.tokio.rev = "dfbc3210c78674284b57d076f2c6a1ff1c17355e"' \
 cargo nextest run \
   --cargo-profile simulator \
   --config 'build.rustflags = ["--cfg", "msim"]' \
-  --config 'patch.crates-io.tokio.git = "https://github.com/MystenLabs/mysten-sim.git"' \
-  --config 'patch.crates-io.tokio.rev = "dfbc3210c78674284b57d076f2c6a1ff1c17355e"' \
+  --config 'patch.crates-io.tokio.path = "/home/mlogan/dev/mysten-sim/msim-tokio"' \
   --config 'patch.crates-io.hyper.git = "https://github.com/mystenmark/hyper-madsim-fork.git"' \
   --config 'patch.crates-io.hyper.rev = "2b2eca1e983376294c84c93385ebe848ccf9a99f"' \
   "$@"

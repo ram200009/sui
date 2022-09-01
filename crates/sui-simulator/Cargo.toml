@@ -7,4 +7,5 @@ publish = false
 edition = "2021"
 
 [target.'cfg(msim)'.dependencies]
-msim = { git = "https://github.com/MystenLabs/mysten-sim.git", rev = "dfbc3210c78674284b57d076f2c6a1ff1c17355e", package = "msim" }
+#msim = { git = "https://github.com/MystenLabs/mysten-sim.git", rev = "dfbc3210c78674284b57d076f2c6a1ff1c17355e", package = "msim" }
+msim = { path = "../../../mysten-sim/msim", package = "msim" }
