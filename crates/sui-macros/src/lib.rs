@@ -44,7 +44,7 @@ pub fn init_static_initializers(_args: TokenStream, item: TokenStream) -> TokenS
     result.into()
 }
 
-/// The sui_test macro will invoke either #[madsim::test] or #[tokio::test],
+/// The sui_test macro will invoke either #[msim::test] or #[tokio::test],
 /// depending on whether the simulator config var is enabled.
 ///
 /// This should be used for tests that can meaningfully run in either environment.
@@ -53,7 +53,7 @@ pub fn sui_test(args: TokenStream, item: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(item as syn::ItemFn);
     let args = syn::parse_macro_input!(args as syn::AttributeArgs);
 
-    let header = if cfg!(madsim) {
+    let header = if cfg!(msim) {
         quote! {
             #[::sui_simulator::sim_test(crate = "sui_simulator", #(#args)*)]
             #[init_static_initializers]
@@ -74,7 +74,7 @@ pub fn sui_test(args: TokenStream, item: TokenStream) -> TokenStream {
     result.into()
 }
 
-/// The sim_test macro will invoke #[madsim::test] if the simulator config var is enabled.
+/// The sim_test macro will invoke #[msim::test] if the simulator config var is enabled.
 ///
 /// Otherwise, it will emit an ignored test - if forcibly run, the ignored test will panic.
 ///
@@ -85,7 +85,7 @@ pub fn sim_test(args: TokenStream, item: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(item as syn::ItemFn);
     let args = syn::parse_macro_input!(args as syn::AttributeArgs);
 
-    let result = if cfg!(madsim) {
+    let result = if cfg!(msim) {
         quote! {
             #[::sui_simulator::sim_test(crate = "sui_simulator", #(#args)*)]
             #[init_static_initializers]
