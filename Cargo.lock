@@ -4234,7 +4234,7 @@ dependencies = [
 [[package]]
 name = "msim"
 version = "0.1.0"
-source = "git+https://github.com/MystenLabs/mysten-simulator.git?rev=79b3531002494a549b6c19cd9a037a1af5bd964e#4d28977c4145d3ce4b8a7acf589039b738591033"
+source = "git+https://github.com/MystenLabs/mysten-sim.git?rev=dfbc3210c78674284b57d076f2c6a1ff1c17355e#dfbc3210c78674284b57d076f2c6a1ff1c17355e"
 dependencies = [
  "ahash",
  "async-task",
@@ -4250,7 +4250,7 @@ dependencies = [
  "rand 0.8.5",
  "real_tokio",
  "serde 1.0.144",
- "tokio-util 0.7.3 (git+https://github.com/MystenLabs/mysten-simulator.git?rev=79b3531002494a549b6c19cd9a037a1af5bd964e)",
+ "tokio-util 0.7.3 (git+https://github.com/mystenmark/tokio-madsim-fork.git?rev=8ca4c94029ac1b7c8342720820e6100e9f31a372)",
  "toml",
  "tracing",
  "tracing-subscriber 0.3.15",
@@ -4259,7 +4259,7 @@ dependencies = [
 [[package]]
 name = "msim-macros"
 version = "0.1.0"
-source = "git+https://github.com/MystenLabs/mysten-simulator.git?rev=79b3531002494a549b6c19cd9a037a1af5bd964e#4d28977c4145d3ce4b8a7acf589039b738591033"
+source = "git+https://github.com/MystenLabs/mysten-sim.git?rev=dfbc3210c78674284b57d076f2c6a1ff1c17355e#dfbc3210c78674284b57d076f2c6a1ff1c17355e"
 dependencies = [
  "darling 0.14.1",
  "proc-macro2 1.0.42",
@@ -5806,7 +5806,7 @@ dependencies = [
 [[package]]
 name = "real_tokio"
 version = "1.20.1"
-source = "git+https://github.com/MystenLabs/mysten-simulator.git?rev=79b3531002494a549b6c19cd9a037a1af5bd964e#4d28977c4145d3ce4b8a7acf589039b738591033"
+source = "git+https://github.com/mystenmark/tokio-madsim-fork.git?rev=8ca4c94029ac1b7c8342720820e6100e9f31a372#8ca4c94029ac1b7c8342720820e6100e9f31a372"
 dependencies = [
  "autocfg 1.1.0",
  "bytes",
@@ -5819,7 +5819,7 @@ dependencies = [
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
- "tokio-macros 1.8.0 (git+https://github.com/MystenLabs/mysten-simulator.git?rev=79b3531002494a549b6c19cd9a037a1af5bd964e)",
+ "tokio-macros 1.8.0 (git+https://github.com/mystenmark/tokio-madsim-fork.git?rev=8ca4c94029ac1b7c8342720820e6100e9f31a372)",
  "winapi",
 ]
 
@@ -8242,7 +8242,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "1.8.0"
-source = "git+https://github.com/MystenLabs/mysten-simulator.git?rev=79b3531002494a549b6c19cd9a037a1af5bd964e#4d28977c4145d3ce4b8a7acf589039b738591033"
+source = "git+https://github.com/mystenmark/tokio-madsim-fork.git?rev=8ca4c94029ac1b7c8342720820e6100e9f31a372#8ca4c94029ac1b7c8342720820e6100e9f31a372"
 dependencies = [
  "proc-macro2 1.0.42",
  "quote 1.0.21",
@@ -8311,7 +8311,7 @@ dependencies = [
 [[package]]
 name = "tokio-util"
 version = "0.7.3"
-source = "git+https://github.com/MystenLabs/mysten-simulator.git?rev=79b3531002494a549b6c19cd9a037a1af5bd964e#4d28977c4145d3ce4b8a7acf589039b738591033"
+source = "git+https://github.com/mystenmark/tokio-madsim-fork.git?rev=8ca4c94029ac1b7c8342720820e6100e9f31a372#8ca4c94029ac1b7c8342720820e6100e9f31a372"
 dependencies = [
  "bytes",
  "futures-core",
