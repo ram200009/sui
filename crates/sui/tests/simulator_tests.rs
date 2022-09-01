@@ -8,7 +8,7 @@ use futures::{
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::OsRng,
-    Rng,
+    Rng, RngCore,
 };
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
@@ -65,6 +65,10 @@ async fn test_futures_unordered() {
 #[sim_test]
 async fn test_rng() {
     debug!("initial rng state: {}", OsRng.gen::<u32>());
+    debug!(
+        "sim rng state: {}",
+        sui_simulator::rand::thread_rng().next_u32()
+    );
 }
 
 #[sim_test]
