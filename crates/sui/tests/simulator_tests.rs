@@ -62,8 +62,14 @@ async fn test_futures_unordered() {
     debug!("final rng state: {}", OsRng.gen::<u32>());
 }
 
-#[sim_test(check_determinism)]
+#[sim_test]
+async fn test_rng() {
+    debug!("initial rng state: {}", OsRng.gen::<u32>());
+}
+
+#[sim_test]
 async fn test_select_unbiased() {
+    debug!("initial rng state: {}", OsRng.gen::<u32>());
     let mut f1 = FuturesUnordered::from_iter((0..200).map(|i| make_fut(i)));
     let mut f2 = FuturesUnordered::from_iter((0..200).map(|i| make_fut(i)));
 
