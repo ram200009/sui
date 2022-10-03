@@ -78,7 +78,7 @@ impl QuorumWaiter {
 
     /// Main loop.
     async fn run(&mut self) {
-        // 
+        //
         let mut pipeline = FuturesOrdered::new();
         let mut best_effort_with_timeout = FuturesUnordered::new();
 
@@ -86,7 +86,7 @@ impl QuorumWaiter {
             tokio::select! {
 
                 // When a new batch is available, and the pipeline is not full, add a new
-                // task to the pipeline to send this batch to workers. 
+                // task to the pipeline to send this batch to workers.
                 Some(batch) = self.rx_message.recv(), if pipeline.len() < 20 => {
                     // Broadcast the batch to the other workers.
                     let workers: Vec<_> = self
@@ -142,14 +142,14 @@ impl QuorumWaiter {
 
                     // Attempt to send messages to the remaining workers
                     best_effort_with_timeout.push(async move {
-                        // Bound the attempt to a few seconds to tolerate nodes that are 
+                        // Bound the attempt to a few seconds to tolerate nodes that are
                         // offline and will never succeed.
                         timeout(Duration::from_secs(5), async move{
                             while remaining.next().await.is_some() { }
                         }).await
                     });
 
-                    // After we register the best effort attempts we send the batch to the 
+                    // After we register the best effort attempts we send the batch to the
                     // next stage of processing.
                     if self.tx_batch.send(batch).await.is_err() {
                         tracing::debug!("{}", DagError::ShuttingDown);
