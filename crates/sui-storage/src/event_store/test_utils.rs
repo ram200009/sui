@@ -1,16 +1,18 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
-use super::*;
+
+use move_core_types::account_address::AccountAddress;
 use move_core_types::ident_str;
 use move_core_types::language_storage::{StructTag, TypeTag};
 use move_core_types::value::MoveStruct;
 use serde::{Deserialize, Serialize};
-use sui_types::SUI_FRAMEWORK_ADDRESS;
 
-use move_core_types::account_address::AccountAddress;
 use sui_types::base_types::SuiAddress;
 use sui_types::event::{Event, EventEnvelope, TransferType};
 use sui_types::object::Owner;
+use sui_types::SUI_FRAMEWORK_ADDRESS;
+
+use super::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct TestEvent {
@@ -50,16 +52,16 @@ pub fn new_test_publish_event(
     seq_num: u64,
     sender: Option<SuiAddress>,
 ) -> EventEnvelope {
-    EventEnvelope::new(
+    EventEnvelope {
         timestamp,
-        None,
-        seq_num,
-        Event::Publish {
+        tx_digest: None,
+        tx_seq_num: seq_num,
+        event: Event::Publish {
             sender: sender.unwrap_or_else(SuiAddress::random_for_testing_only),
             package_id: ObjectID::random(),
         },
-        None,
-    )
+        move_struct_json_value: None,
+    }
 }
 
 pub fn new_test_newobj_event(
@@ -69,11 +71,11 @@ pub fn new_test_newobj_event(
     sender: Option<SuiAddress>,
     recipient: Option<Owner>,
 ) -> EventEnvelope {
-    EventEnvelope::new(
+    EventEnvelope {
         timestamp,
-        Some(TransactionDigest::random()),
-        seq_num,
-        Event::NewObject {
+        tx_digest: Some(TransactionDigest::random()),
+        tx_seq_num: seq_num,
+        event: Event::NewObject {
             package_id: ObjectID::random(),
             transaction_module: Identifier::new("module").unwrap(),
             sender: sender.unwrap_or_else(SuiAddress::random_for_testing_only),
@@ -81,8 +83,8 @@ pub fn new_test_newobj_event(
                 .unwrap_or_else(|| Owner::AddressOwner(SuiAddress::random_for_testing_only())),
             object_id: object_id.unwrap_or_else(ObjectID::random),
         },
-        None,
-    )
+        move_struct_json_value: None,
+    }
 }
 
 pub fn new_test_deleteobj_event(
@@ -91,18 +93,18 @@ pub fn new_test_deleteobj_event(
     object_id: Option<ObjectID>,
     sender: Option<SuiAddress>,
 ) -> EventEnvelope {
-    EventEnvelope::new(
+    EventEnvelope {
         timestamp,
-        Some(TransactionDigest::random()),
-        seq_num,
-        Event::DeleteObject {
+        tx_digest: Some(TransactionDigest::random()),
+        tx_seq_num: seq_num,
+        event: Event::DeleteObject {
             package_id: ObjectID::random(),
             transaction_module: Identifier::new("module").unwrap(),
             sender: sender.unwrap_or_else(SuiAddress::random_for_testing_only),
             object_id: object_id.unwrap_or_else(ObjectID::random),
         },
-        None,
-    )
+        move_struct_json_value: None,
+    }
 }
 
 pub fn new_test_transfer_event(
@@ -114,11 +116,11 @@ pub fn new_test_transfer_event(
     sender: Option<SuiAddress>,
     recipient: Option<Owner>,
 ) -> EventEnvelope {
-    EventEnvelope::new(
+    EventEnvelope {
         timestamp,
-        Some(TransactionDigest::random()),
-        seq_num,
-        Event::TransferObject {
+        tx_digest: Some(TransactionDigest::random()),
+        tx_seq_num: seq_num,
+        event: Event::TransferObject {
             package_id: ObjectID::random(),
             transaction_module: Identifier::new("module").unwrap(),
             sender: sender.unwrap_or_else(SuiAddress::random_for_testing_only),
@@ -129,8 +131,8 @@ pub fn new_test_transfer_event(
             type_,
             amount: Some(10),
         },
-        None,
-    )
+        move_struct_json_value: None,
+    }
 }
 
 pub fn new_test_move_event(
@@ -157,11 +159,11 @@ pub fn new_test_move_event(
     );
 
     let json = serde_json::to_value(&move_struct).expect("Cannot serialize move struct to JSON");
-    EventEnvelope::new(
+    EventEnvelope {
         timestamp,
-        Some(TransactionDigest::random()),
-        seq_num,
-        move_event,
-        Some(json),
-    )
+        tx_digest: Some(TransactionDigest::random()),
+        tx_seq_num: seq_num,
+        event: move_event,
+        move_struct_json_value: Some(json),
+    }
 }

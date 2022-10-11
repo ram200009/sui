@@ -1,41 +1,35 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::str::FromStr;
 use std::{collections::BTreeMap, sync::Arc};
 
 use futures::future;
 use jsonrpsee::core::client::{ClientT, Subscription, SubscriptionClientT};
 use jsonrpsee::rpc_params;
-use move_core_types::account_address::AccountAddress;
-use move_core_types::identifier::Identifier;
-use move_core_types::language_storage::ModuleId;
+use move_core_types::parser::parse_struct_tag;
 use move_core_types::value::MoveStructLayout;
 use prometheus::Registry;
-use tokio::sync::Mutex;
-use tokio::time::timeout;
-use tokio::time::{sleep, Duration};
-
 use sui::client_commands::{SuiClientCommandResult, SuiClientCommands};
 use sui_json_rpc_types::{
-    SuiEvent, SuiEventEnvelope, SuiEventFilter, SuiExecuteTransactionResponse, SuiExecutionStatus,
-    SuiMoveStruct, SuiMoveValue, SuiTransactionFilter, SuiTransactionResponse,
+    type_and_fields_from_move_struct, EventPage, SuiEvent, SuiEventEnvelope, SuiEventFilter,
+    SuiExecuteTransactionResponse, SuiExecutionStatus, SuiMoveStruct, SuiMoveValue,
+    SuiTransactionFilter, SuiTransactionResponse,
 };
 use sui_keys::keystore::AccountKeystore;
 use sui_macros::*;
 use sui_node::SuiNode;
 use sui_types::base_types::{ObjectRef, SequenceNumber};
-use sui_types::event::TransferType;
+use sui_types::event::{Event, TransferType};
 use sui_types::messages::{
     ExecuteTransactionRequest, ExecuteTransactionRequestType, ExecuteTransactionResponse,
 };
 use sui_types::object::{Object, ObjectRead, Owner, PastObjectRead};
-use sui_types::query::TransactionQuery;
-use sui_types::sui_framework_address_concat_string;
+use sui_types::query::{EventQuery, Ordering, TransactionQuery};
 use sui_types::{
     base_types::{ObjectID, SuiAddress, TransactionDigest},
     messages::TransactionInfoRequest,
 };
+use sui_types::{sui_framework_address_concat_string, SUI_FRAMEWORK_OBJECT_ID};
 use test_utils::authority::test_and_configure_authority_configs;
 use test_utils::messages::make_transactions_with_wallet_context;
 use test_utils::messages::{
@@ -49,6 +43,9 @@ use test_utils::transaction::{
     publish_basics_package_and_make_counter, transfer_coin,
 };
 use test_utils::transaction::{wait_for_all_txes, wait_for_tx};
+use tokio::sync::Mutex;
+use tokio::time::timeout;
+use tokio::time::{sleep, Duration};
 
 #[sim_test]
 async fn test_full_node_follows_txes() -> Result<(), anyhow::Error> {
@@ -257,7 +254,15 @@ async fn test_full_node_indexes() -> Result<(), anyhow::Error> {
     // query all events
     let all_events = node
         .state()
-        .get_events_by_timerange(ts.unwrap() - HOUR_MS, ts.unwrap() + HOUR_MS, 10)
+        .get_events(
+            EventQuery::TimeRange {
+                start_time: ts.unwrap() - HOUR_MS,
+                end_time: ts.unwrap() + HOUR_MS,
+            },
+            None,
+            10,
+            false,
+        )
         .await?;
     assert_eq!(all_events.len(), 1);
     assert_eq!(all_events[0].event, expected_event);
@@ -266,14 +271,17 @@ async fn test_full_node_indexes() -> Result<(), anyhow::Error> {
     // query by sender
     let events_by_sender = node
         .state()
-        .get_events_by_sender(&sender, ts.unwrap() - HOUR_MS, ts.unwrap() + HOUR_MS, 10)
+        .get_events(EventQuery::Sender(sender), None, 10, false)
         .await?;
     assert_eq!(events_by_sender.len(), 1);
     assert_eq!(events_by_sender[0].event, expected_event);
     assert_eq!(events_by_sender[0].tx_digest.unwrap(), digest);
 
     // query by tx digest
-    let events_by_tx = node.state().get_events_by_transaction(digest, 10).await?;
+    let events_by_tx = node
+        .state()
+        .get_events(EventQuery::Transaction(digest), None, 10, false)
+        .await?;
     assert_eq!(events_by_tx.len(), 1);
     assert_eq!(events_by_tx[0].event, expected_event);
     assert_eq!(events_by_tx[0].tx_digest.unwrap(), digest);
@@ -281,11 +289,11 @@ async fn test_full_node_indexes() -> Result<(), anyhow::Error> {
     // query by recipient
     let events_by_recipient = node
         .state()
-        .get_events_by_recipient(
-            &Owner::AddressOwner(receiver),
-            ts.unwrap() - HOUR_MS,
-            ts.unwrap() + HOUR_MS,
+        .get_events(
+            EventQuery::Recipient(Owner::AddressOwner(receiver)),
+            None,
             10,
+            false,
         )
         .await?;
     assert_eq!(events_by_recipient.len(), 1);
@@ -295,12 +303,7 @@ async fn test_full_node_indexes() -> Result<(), anyhow::Error> {
     // query by object
     let events_by_object = node
         .state()
-        .get_events_by_object(
-            &transferred_object,
-            ts.unwrap() - HOUR_MS,
-            ts.unwrap() + HOUR_MS,
-            10,
-        )
+        .get_events(EventQuery::Object(transferred_object), None, 10, false)
         .await?;
     assert_eq!(events_by_object.len(), 1);
     assert_eq!(events_by_object[0].event, expected_event);
@@ -308,13 +311,17 @@ async fn test_full_node_indexes() -> Result<(), anyhow::Error> {
 
     // query by transaction module
     // Query by module ID
-    let mod_id = ModuleId::new(
-        AccountAddress::from(ObjectID::from_hex_literal("0x2").unwrap()),
-        Identifier::from_str("native").unwrap(),
-    );
     let events_by_module = node
         .state()
-        .get_events_by_transaction_module(&mod_id, ts.unwrap() - HOUR_MS, ts.unwrap() + HOUR_MS, 10)
+        .get_events(
+            EventQuery::MoveModule {
+                package: SUI_FRAMEWORK_OBJECT_ID,
+                module: "native".to_string(),
+            },
+            None,
+            10,
+            false,
+        )
         .await?;
     assert_eq!(events_by_module.len(), 1);
     assert_eq!(events_by_module[0].event, expected_event);
@@ -553,26 +560,25 @@ async fn test_full_node_sub_and_query_move_event_ok() -> Result<(), anyhow::Erro
         other => panic!("Failed to get SuiEvent, but {:?}", other),
     };
 
-    let ts = node.state().get_timestamp_ms(&digest).await?;
-
+    let type_ = sui_framework_address_concat_string("::devnet_nft::MintNFTEvent");
+    let type_tag = parse_struct_tag(&type_).unwrap();
+    let expected_parsed_event =
+        Event::move_event_to_move_struct(&type_tag, &bcs, &*node.state().module_cache).unwrap();
+    let (_, expected_parsed_event) =
+        type_and_fields_from_move_struct(&type_tag, expected_parsed_event);
     let expected_event = SuiEvent::MoveEvent {
         package_id: ObjectID::from_hex_literal("0x2").unwrap(),
         transaction_module: "devnet_nft".into(),
         sender,
-        type_: sui_framework_address_concat_string("::devnet_nft::MintNFTEvent"),
-        fields: None,
+        type_,
+        fields: Some(expected_parsed_event),
         bcs,
     };
 
     // Query by move event struct name
     let events_by_sender = node
         .state()
-        .get_events_by_move_event_struct_name(
-            &struct_tag_str,
-            ts.unwrap() - HOUR_MS,
-            ts.unwrap() + HOUR_MS,
-            10,
-        )
+        .get_events(EventQuery::MoveEvent(struct_tag_str), None, 10, false)
         .await?;
     assert_eq!(events_by_sender.len(), 1);
     assert_eq!(events_by_sender[0].event, expected_event);
@@ -633,70 +639,83 @@ async fn test_full_node_event_read_api_ok() -> Result<(), anyhow::Error> {
     };
 
     // query by sender
-    let params = rpc_params![sender, 10, ts.unwrap() - HOUR_MS, ts.unwrap() + HOUR_MS];
-    let events_by_sender: Vec<SuiEventEnvelope> = jsonrpc_client
-        .request("sui_getEventsBySender", params)
+    let params = rpc_params![
+        EventQuery::Sender(sender),
+        None::<u64>,
+        10,
+        Ordering::Ascending
+    ];
+
+    let events_by_sender: EventPage = jsonrpc_client
+        .request("sui_getEvents", params)
         .await
         .unwrap();
-    assert_eq!(events_by_sender.len(), 1);
-    assert_eq!(events_by_sender[0].event, expected_event);
-    assert_eq!(events_by_sender[0].tx_digest.unwrap(), digest);
+    assert_eq!(events_by_sender.data.len(), 1);
+    assert_eq!(events_by_sender.data[0].event, expected_event);
+    assert_eq!(events_by_sender.data[0].tx_digest.unwrap(), digest);
 
     // query by tx digest
-    let params = rpc_params![digest, 10];
-    let events_by_tx: Vec<SuiEventEnvelope> = jsonrpc_client
-        .request("sui_getEventsByTransaction", params)
+    let params = rpc_params![
+        EventQuery::Transaction(digest),
+        None::<u64>,
+        10,
+        Ordering::Ascending
+    ];
+    let events_by_tx: EventPage = jsonrpc_client
+        .request("sui_getEvents", params)
         .await
         .unwrap();
-    assert_eq!(events_by_tx.len(), 1);
-    assert_eq!(events_by_tx[0].event, expected_event);
-    assert_eq!(events_by_tx[0].tx_digest.unwrap(), digest);
+    assert_eq!(events_by_tx.data.len(), 1);
+    assert_eq!(events_by_tx.data[0].event, expected_event);
+    assert_eq!(events_by_tx.data[0].tx_digest.unwrap(), digest);
 
     // query by recipient
     let params = rpc_params![
-        Owner::AddressOwner(receiver),
+        EventQuery::Recipient(Owner::AddressOwner(receiver)),
+        None::<u64>,
         10,
-        ts.unwrap() - HOUR_MS,
-        ts.unwrap() + HOUR_MS
+        Ordering::Ascending
     ];
-    let events_by_recipient: Vec<SuiEventEnvelope> = jsonrpc_client
-        .request("sui_getEventsByRecipient", params)
+    let events_by_recipient: EventPage = jsonrpc_client
+        .request("sui_getEvents", params)
         .await
         .unwrap();
-    assert_eq!(events_by_recipient.len(), 1);
-    assert_eq!(events_by_recipient[0].event, expected_event);
-    assert_eq!(events_by_recipient[0].tx_digest.unwrap(), digest);
+    assert_eq!(events_by_recipient.data.len(), 1);
+    assert_eq!(events_by_recipient.data[0].event, expected_event);
+    assert_eq!(events_by_recipient.data[0].tx_digest.unwrap(), digest);
 
     // query by object
     let params = rpc_params![
-        transferred_object,
+        EventQuery::Object(transferred_object),
+        None::<u64>,
         10,
-        ts.unwrap() - HOUR_MS,
-        ts.unwrap() + HOUR_MS
+        Ordering::Ascending
     ];
-    let events_by_object: Vec<SuiEventEnvelope> = jsonrpc_client
-        .request("sui_getEventsByObject", params)
+    let events_by_object: EventPage = jsonrpc_client
+        .request("sui_getEvents", params)
         .await
         .unwrap();
-    assert_eq!(events_by_object.len(), 1);
-    assert_eq!(events_by_object[0].event, expected_event);
-    assert_eq!(events_by_object[0].tx_digest.unwrap(), digest);
+    assert_eq!(events_by_object.data.len(), 1);
+    assert_eq!(events_by_object.data[0].event, expected_event);
+    assert_eq!(events_by_object.data[0].tx_digest.unwrap(), digest);
 
     // query by transaction module
     let params = rpc_params![
-        ObjectID::from_hex_literal("0x2").unwrap(),
-        "native",
+        EventQuery::MoveModule {
+            package: SUI_FRAMEWORK_OBJECT_ID,
+            module: "native".to_string()
+        },
+        None::<u64>,
         10,
-        ts.unwrap() - HOUR_MS,
-        ts.unwrap() + HOUR_MS
+        Ordering::Ascending
     ];
-    let events_by_module: Vec<SuiEventEnvelope> = jsonrpc_client
-        .request("sui_getEventsByModule", params)
+    let events_by_module: EventPage = jsonrpc_client
+        .request("sui_getEvents", params)
         .await
         .unwrap();
-    assert_eq!(events_by_module.len(), 1);
-    assert_eq!(events_by_module[0].event, expected_event);
-    assert_eq!(events_by_module[0].tx_digest.unwrap(), digest);
+    assert_eq!(events_by_module.data.len(), 1);
+    assert_eq!(events_by_module.data[0].event, expected_event);
+    assert_eq!(events_by_module.data[0].tx_digest.unwrap(), digest);
 
     let (_sender, _object_id, digest2) = create_devnet_nft(context).await?;
     wait_for_tx(digest2, node.state().clone()).await;
@@ -706,28 +725,38 @@ async fn test_full_node_event_read_api_ok() -> Result<(), anyhow::Error> {
 
     // query by move event struct name
     let params = rpc_params![
-        struct_tag_str,
+        EventQuery::MoveEvent(struct_tag_str),
+        None::<u64>,
         10,
-        ts2.unwrap() - HOUR_MS,
-        ts2.unwrap() + HOUR_MS
+        Ordering::Ascending
     ];
-    let events_by_sender: Vec<SuiEventEnvelope> = jsonrpc_client
-        .request("sui_getEventsByMoveEventStructName", params)
+    let events_by_sender: EventPage = jsonrpc_client
+        .request("sui_getEvents", params)
         .await
         .unwrap();
-    assert_eq!(events_by_sender.len(), 1);
-    assert_eq!(events_by_sender[0].tx_digest.unwrap(), digest2);
+    assert_eq!(events_by_sender.data.len(), 1);
+    assert_eq!(events_by_sender.data[0].tx_digest.unwrap(), digest2);
 
     // query all transactions
-    let params = rpc_params![10, ts.unwrap() - HOUR_MS, ts2.unwrap() + HOUR_MS];
-    let all_events: Vec<SuiEventEnvelope> = jsonrpc_client
-        .request("sui_getEventsByTimeRange", params)
+
+    let params = rpc_params![
+        EventQuery::TimeRange {
+            start_time: ts.unwrap() - HOUR_MS,
+            end_time: ts2.unwrap() + HOUR_MS
+        },
+        None::<u64>,
+        10,
+        Ordering::Ascending
+    ];
+    let all_events: EventPage = jsonrpc_client
+        .request("sui_getEvents", params)
         .await
         .unwrap();
     // The first txn emits TransferObject
     // The second txn emits MoveEvent and NewObject
-    assert_eq!(all_events.len(), 3);
+    assert_eq!(all_events.data.len(), 3);
     let tx_digests: Vec<TransactionDigest> = all_events
+        .data
         .iter()
         .map(|envelope| envelope.tx_digest.unwrap())
         .collect();

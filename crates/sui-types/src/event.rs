@@ -3,15 +3,6 @@
 
 use std::str::FromStr;
 
-use crate::error::SuiError;
-use crate::object::MoveObject;
-use crate::object::ObjectFormatOptions;
-use crate::object::Owner;
-use crate::{
-    base_types::{ObjectID, SequenceNumber, SuiAddress, TransactionDigest},
-    committee::EpochId,
-    messages_checkpoint::CheckpointSequenceNumber,
-};
 use move_bytecode_utils::module_cache::GetModule;
 use move_core_types::account_address::AccountAddress;
 use move_core_types::identifier::IdentStr;
@@ -28,6 +19,16 @@ use strum::VariantNames;
 use strum_macros::{EnumDiscriminants, EnumVariantNames};
 use tracing::error;
 
+use crate::error::SuiError;
+use crate::object::MoveObject;
+use crate::object::ObjectFormatOptions;
+use crate::object::Owner;
+use crate::{
+    base_types::{ObjectID, SequenceNumber, SuiAddress, TransactionDigest},
+    committee::EpochId,
+    messages_checkpoint::CheckpointSequenceNumber,
+};
+
 /// A universal Sui event type encapsulating different types of events
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EventEnvelope {
@@ -35,31 +36,18 @@ pub struct EventEnvelope {
     pub timestamp: u64,
     /// Transaction digest of associated transaction, if any
     pub tx_digest: Option<TransactionDigest>,
-    /// Sequence number, must be nondecreasing for event ingestion idempotency
-    pub seq_num: u64,
+    /// Transaction sequence number, must be nondecreasing for event ingestion idempotency
+    pub tx_seq_num: u64,
     /// Specific event type
     pub event: Event,
     /// json value for MoveStruct (for MoveEvent only)
     pub move_struct_json_value: Option<Value>,
 }
+/// Unique ID of a Sui Event, the ID is generated during transaction post processing,
+/// the ID is local to this particular fullnode and will be different from other fullnode.
+pub type EventID = u64;
 
 impl EventEnvelope {
-    pub fn new(
-        timestamp: u64,
-        tx_digest: Option<TransactionDigest>,
-        seq_num: u64,
-        event: Event,
-        move_struct_json_value: Option<Value>,
-    ) -> Self {
-        Self {
-            timestamp,
-            tx_digest,
-            seq_num,
-            event,
-            move_struct_json_value,
-        }
-    }
-
     pub fn event_type(&self) -> &'static str {
         self.event.variant_name()
     }
