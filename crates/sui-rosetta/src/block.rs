@@ -60,7 +60,14 @@ pub async fn transaction(
         }
     }
 
-    let operations = Operation::from_data_and_effect(&data, &effects, &new_coins)?;
+    let operations = Operation::from_data_and_events(
+        &data,
+        &effects.status,
+        &effects.events,
+        effects.gas_used.net_gas_usage(),
+        effects.gas_object.1,
+        &new_coins,
+    )?;
 
     let transaction = Transaction {
         transaction_identifier: TransactionIdentifier { hash },
