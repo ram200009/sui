@@ -157,13 +157,12 @@ async fn test_all_transaction_type() {
                 None
             }
         })
-        .unwrap()
-        .clone();
+        .unwrap();
     // Get object ref from effect
     let package = effect
         .created
         .iter()
-        .find(|obj| obj.reference.object_id == package)
+        .find(|obj| &obj.reference.object_id == package)
         .unwrap();
     let package = package.clone().reference.to_object_ref();
     // TODO: Improve tx response to make it easier to find objects.
@@ -186,13 +185,12 @@ async fn test_all_transaction_type() {
                 None
             }
         })
-        .unwrap()
-        .clone();
+        .unwrap();
     // Get objectRef from effect
     let treasury = effect
         .created
         .iter()
-        .find(|obj| obj.reference.object_id == treasury)
+        .find(|obj| &obj.reference.object_id == treasury)
         .unwrap();
     let treasury = treasury.clone().reference.to_object_ref();
     let recipient = *network.accounts.choose(&mut OsRng::default()).unwrap();
@@ -239,7 +237,7 @@ async fn test_transaction(
             }
         })
         .collect::<Vec<_>>();
-    let gas = get_random_gas(&client, sender, input_objects).await;
+    let gas = get_random_gas(client, sender, input_objects).await;
     let data = TransactionData::new(TransactionKind::Single(tx.clone()), sender, gas, 10000);
 
     let signature = keystore.sign(&data.signer(), &data.to_bytes()).unwrap();
@@ -249,7 +247,7 @@ async fn test_transaction(
     let mut addr_to_check = addr_to_check;
     addr_to_check.push(sender);
     for addr in addr_to_check {
-        balances.insert(addr, get_balance(&client, addr).await);
+        balances.insert(addr, get_balance(client, addr).await);
     }
 
     let response = client
@@ -285,7 +283,7 @@ async fn test_transaction(
     // get actual balance changed after transaction
     let mut actual_balance_change = BTreeMap::new();
     for (addr, balance) in balances {
-        let new_balance = get_balance(&client, addr).await as i64;
+        let new_balance = get_balance(client, addr).await as i64;
         let balance_changed = new_balance - balance as i64;
         actual_balance_change.insert(addr, SignedValue::from(balance_changed));
     }
