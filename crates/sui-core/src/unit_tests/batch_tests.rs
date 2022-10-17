@@ -89,6 +89,7 @@ pub(crate) async fn init_state(
 
     AuthorityState::new(
         name,
+        ChainId::default(),
         secrete,
         store,
         node_sync_store,

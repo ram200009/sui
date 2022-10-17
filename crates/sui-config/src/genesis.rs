@@ -11,6 +11,7 @@ use move_vm_runtime::native_functions::NativeFunctionTable;
 use narwhal_crypto::NetworkPublicKey;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_with::serde_as;
+use sui_types::intent::ChainId;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::{fs, path::Path};
@@ -43,6 +44,7 @@ use tracing::trace;
 pub struct Genesis {
     objects: Vec<Object>,
     validator_set: Vec<ValidatorInfo>,
+    chain_id: Option<ChainId>
 }
 
 impl Genesis {
@@ -218,6 +220,7 @@ impl<'de> Deserialize<'de> for Genesis {
         struct RawGeneis {
             objects: Vec<Object>,
             validator_set: Vec<ValidatorInfo>,
+            chain_id: Option<ChainId>
         }
 
         let bytes = if deserializer.is_human_readable() {
@@ -234,6 +237,7 @@ impl<'de> Deserialize<'de> for Genesis {
         Ok(Genesis {
             objects: raw_genesis.objects,
             validator_set: raw_genesis.validator_set,
+            chain_id: raw_genesis.chain_id.into(),
         })
     }
 }
@@ -249,6 +253,7 @@ pub struct GenesisValidatorInfo {
 pub struct Builder {
     objects: BTreeMap<ObjectID, Object>,
     validators: BTreeMap<AuthorityPublicKeyBytes, GenesisValidatorInfo>,
+    chain_id: Option<ChainId>,
 }
 
 impl Default for Builder {
@@ -262,6 +267,7 @@ impl Builder {
         Self {
             objects: Default::default(),
             validators: Default::default(),
+            chain_id: Default::default(),
         }
     }
 
@@ -315,6 +321,7 @@ impl Builder {
                 .into_iter()
                 .map(|genesis_info| genesis_info.info)
                 .collect::<Vec<_>>(),
+            chain_id: self.chain_id
         };
 
         // Verify that all the validators were properly created onchain
@@ -386,6 +393,7 @@ impl Builder {
         Ok(Self {
             objects,
             validators: committee,
+            chain_id
         })
     }
 
@@ -640,7 +648,8 @@ mod test {
         let pop = generate_proof_of_possession(&key, account_key.public().into());
         let builder = Builder::new()
             .add_objects(objects)
-            .add_validator(validator, pop);
+            .add_validator(validator, pop)
+            .add_chain_id(chain_id);
         builder.save(dir.path()).unwrap();
         Builder::load(dir.path()).unwrap();
     }
