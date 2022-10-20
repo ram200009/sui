@@ -162,6 +162,7 @@ importers:
     specifiers:
       '@floating-ui/react-dom-interactions': ^0.10.1
       '@growthbook/growthbook': ^0.18.1
+      '@growthbook/growthbook-react': ^0.9.1
       '@metamask/browser-passworder': ^3.0.0
       '@mysten/core': workspace:*
       '@mysten/sui.js': workspace:*
@@ -169,6 +170,7 @@ importers:
       '@reduxjs/toolkit': ^1.8.3
       '@scure/bip32': ^1.1.0
       '@scure/bip39': ^1.1.0
+      '@tanstack/react-query': ^4.0.10
       '@types/dotenv-webpack': ^7.0.3
       '@types/node': ^18.0.6
       '@types/react': ^18.0.20
@@ -180,6 +182,7 @@ importers:
       '@types/zxcvbn': ^4.4.1
       '@typescript-eslint/eslint-plugin': ^5.38.1
       '@typescript-eslint/parser': ^5.38.1
+      bignumber.js: ^9.1.0
       bootstrap-icons: ^1.9.1
       buffer: ^6.0.3
       classnames: ^2.3.1
@@ -239,6 +242,7 @@ importers:
     dependencies:
       '@floating-ui/react-dom-interactions': 0.10.1_7ey2zzynotv32rpkwno45fsx4e
       '@growthbook/growthbook': 0.18.1
+      '@growthbook/growthbook-react': 0.9.1_react@18.2.0
       '@metamask/browser-passworder': 3.0.0
       '@mysten/core': link:../core
       '@mysten/sui.js': link:../../sdk/typescript
@@ -246,6 +250,8 @@ importers:
       '@reduxjs/toolkit': 1.8.5_kkwg4cbsojnjnupd3btipussee
       '@scure/bip32': 1.1.0
       '@scure/bip39': 1.1.0
+      '@tanstack/react-query': 4.2.1_biqbaboplfbrettd7655fr4n2y
+      bignumber.js: 9.1.0
       bootstrap-icons: 1.9.1
       buffer: 6.0.3
       classnames: 2.3.1
@@ -263,7 +269,7 @@ importers:
       rxjs: 7.5.6
       semver: 7.3.8
       stream-browserify: 3.0.0
-      tailwindcss: 3.1.8_ts-node@10.9.1
+      tailwindcss: 3.1.8_57znarxsqwmnneadci5z5fd5gu
       tweetnacl: 1.0.3
       uuid: 8.3.2
       webextension-polyfill: 0.9.0
@@ -7148,6 +7154,10 @@ packages:
   /big.js/5.2.2:
     resolution: {integrity: sha512-vyL2OymJxmarO8gxMr0mhChsO9QGwhynfuu4+MHTAW6czfq9humCB7rKpUjDd9YUiDPU4mzpyupFSvOClAwbmQ==}
     dev: true
+
+  /bignumber.js/9.1.0:
+    resolution: {integrity: sha512-4LwHK4nfDOraBCtst+wOWIHbu1vhvAPJK8g8nROd4iuc3PSEjWif/qwbkh8jwCJz6yDBvtU4KPynETgrfh7y3A==}
+    dev: false
 
   /binary-extensions/2.2.0:
     resolution: {integrity: sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==}
@@ -18111,10 +18121,12 @@ packages:
       - ts-node
     dev: true
 
-  /tailwindcss/3.1.8_ts-node@10.9.1:
+  /tailwindcss/3.1.8_57znarxsqwmnneadci5z5fd5gu:
     resolution: {integrity: sha512-YSneUCZSFDYMwk+TGq8qYFdCA3yfBRdBlS7txSq0LUmzyeqRe3a8fBQzbz9M3WS/iFT4BNf/nmw9mEzrnSaC0g==}
     engines: {node: '>=12.13.0'}
     hasBin: true
+    peerDependencies:
+      postcss: ^8.0.9
     dependencies:
       arg: 5.0.2
       chokidar: 3.5.3
