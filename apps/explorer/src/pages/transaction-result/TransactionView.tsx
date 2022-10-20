@@ -237,7 +237,9 @@ function ItemView({ data }: { data: TxItemView }) {
 
 function TransactionView({ txdata }: { txdata: DataType }) {
     const txdetails = getTransactions(txdata)[0];
-    const amount = getTransferSuiAmount(txdetails);
+    const amounts = txdetails.Pay
+        ? txdetails?.Pay.amounts
+        : [getTransferSuiAmount(txdetails)];
     const txKindName = getTransactionKindName(txdetails);
     const sender = getTransactionSender(txdata);
     const recipient =
@@ -425,11 +427,16 @@ function TransactionView({ txdata }: { txdata: DataType }) {
                                     styles.txsender,
                                 ])}
                             >
-                                {amount !== null && (
+                                {amounts !== null && (
                                     <div className={styles.amountbox}>
                                         <div>Amount</div>
                                         <div>
-                                            {presentBN(amount)}
+                                            {presentBN(
+                                                amounts.reduce(
+                                                    (x: number, y: number) =>
+                                                        x + y
+                                                )
+                                            )}
                                             <sup>SUI</sup>
                                         </div>
                                     </div>
