@@ -78,19 +78,13 @@ export default class ApiProvider {
     constructor(private _featureGating: FeatureGating) {}
 
     public setNewJsonRpcProvider(apiEnv: API_ENV = DEFAULT_API_ENV) {
-        const apiVersion = this._featureGating.getFeatureValue(
-            FEATURES.RPC_API_VERSION,
-            '0.11.0'
-        );
         this._apiProvider = new JsonRpcProvider(
             getDefaultAPI(apiEnv).gateway,
-            true,
-            apiVersion
+            true
         );
         this._apiFullNodeProvider = new JsonRpcProvider(
             getDefaultAPI(apiEnv).fullNode,
-            true,
-            apiVersion
+            true
         );
         this._signer = null;
     }
