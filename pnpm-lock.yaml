@@ -170,6 +170,7 @@ importers:
       '@scure/bip32': ^1.1.0
       '@scure/bip39': ^1.1.0
       '@types/dotenv-webpack': ^7.0.3
+      '@types/lodash-es': ^4.17.6
       '@types/node': ^18.0.6
       '@types/react': ^18.0.20
       '@types/react-dom': ^18.0.6
@@ -196,6 +197,7 @@ importers:
       formik: ^2.2.9
       framer-motion: ^7.5.1
       html-webpack-plugin: ^5.5.0
+      lodash-es: ^4.17.21
       mini-css-extract-plugin: ^2.6.1
       mitt: ^3.0.0
       onchange: ^7.1.0
@@ -252,6 +254,7 @@ importers:
       eslint-plugin-react: 7.31.8_eslint@8.23.0
       formik: 2.2.9_react@18.2.0
       framer-motion: 7.5.1_biqbaboplfbrettd7655fr4n2y
+      lodash-es: 4.17.21
       mitt: 3.0.0
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
@@ -263,7 +266,7 @@ importers:
       rxjs: 7.5.6
       semver: 7.3.8
       stream-browserify: 3.0.0
-      tailwindcss: 3.1.8_ts-node@10.9.1
+      tailwindcss: 3.1.8_57znarxsqwmnneadci5z5fd5gu
       tweetnacl: 1.0.3
       uuid: 8.3.2
       webextension-polyfill: 0.9.0
@@ -271,6 +274,7 @@ importers:
       zxcvbn: 4.4.2
     devDependencies:
       '@types/dotenv-webpack': 7.0.3_webpack-cli@4.10.0
+      '@types/lodash-es': 4.17.6
       '@types/node': 18.7.6
       '@types/react': 18.0.20
       '@types/react-dom': 18.0.6
@@ -5489,6 +5493,12 @@ packages:
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
     dependencies:
       '@types/node': 18.7.6
+    dev: true
+
+  /@types/lodash-es/4.17.6:
+    resolution: {integrity: sha512-R+zTeVUKDdfoRxpAryaQNRKk3105Rrgx2CFRClIgRGaqDTdjsm8h6IYA8ir584W3ePzkZfst5xIgDwYrlh9HLg==}
+    dependencies:
+      '@types/lodash': 4.14.183
     dev: true
 
   /@types/lodash/4.14.183:
@@ -18111,10 +18121,12 @@ packages:
       - ts-node
     dev: true
 
-  /tailwindcss/3.1.8_ts-node@10.9.1:
+  /tailwindcss/3.1.8_57znarxsqwmnneadci5z5fd5gu:
     resolution: {integrity: sha512-YSneUCZSFDYMwk+TGq8qYFdCA3yfBRdBlS7txSq0LUmzyeqRe3a8fBQzbz9M3WS/iFT4BNf/nmw9mEzrnSaC0g==}
     engines: {node: '>=12.13.0'}
     hasBin: true
+    peerDependencies:
+      postcss: ^8.0.9
     dependencies:
       arg: 5.0.2
       chokidar: 3.5.3
