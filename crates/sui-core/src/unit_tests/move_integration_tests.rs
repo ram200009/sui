@@ -18,7 +18,7 @@ use move_core_types::{
 use move_package::BuildConfig;
 use sui_types::{
     crypto::{get_key_pair, AccountKeyPair},
-    event::{Event, EventType, TransferType},
+    event::{Event, EventType},
     messages::ExecutionStatus,
     object::OBJECT_START_VERSION,
 };
@@ -233,10 +233,11 @@ async fn test_object_owning_another_object() {
     .await
     .unwrap();
     assert!(effects.status.is_ok());
-    assert_eq!(effects.events.len(), 1);
-    assert_eq!(effects.events[0].event_type(), EventType::NewObject);
+    assert_eq!(effects.events.len(), 2);
+    assert_eq!(effects.events[0].event_type(), EventType::CoinBalanceChange);
+    assert_eq!(effects.events[1].event_type(), EventType::NewObject);
     let parent = effects.created[0].0;
-    assert_eq!(effects.events[0].object_id(), Some(parent.0));
+    assert_eq!(effects.events[1].object_id(), Some(parent.0));
 
     // Create a child.
     let effects = call_move(
@@ -253,8 +254,9 @@ async fn test_object_owning_another_object() {
     .await
     .unwrap();
     assert!(effects.status.is_ok());
-    assert_eq!(effects.events.len(), 1);
-    assert_eq!(effects.events[0].event_type(), EventType::NewObject);
+    assert_eq!(effects.events.len(), 2);
+    assert_eq!(effects.events[0].event_type(), EventType::CoinBalanceChange);
+    assert_eq!(effects.events[1].event_type(), EventType::NewObject);
     let child = effects.created[0].0;
 
     // Mutate the child directly should work fine.
@@ -347,8 +349,9 @@ async fn test_object_owning_another_object() {
     .await
     .unwrap();
     assert!(effects.status.is_ok());
-    assert_eq!(effects.events.len(), 1);
-    assert_eq!(effects.events[0].event_type(), EventType::NewObject);
+    assert_eq!(effects.events.len(), 2);
+    assert_eq!(effects.events[0].event_type(), EventType::CoinBalanceChange);
+    assert_eq!(effects.events[1].event_type(), EventType::NewObject);
     let new_parent = effects.created[0].0;
 
     // Transfer the child to the new_parent.

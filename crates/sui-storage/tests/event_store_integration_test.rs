@@ -5,8 +5,9 @@ use sui_json_rpc_types::SuiEventEnvelope;
 use sui_storage::event_store::{sql::SqlEventStore, test_utils, EventStore};
 use sui_types::{
     base_types::ObjectID,
-    event::{EventEnvelope, EventType, TransferType},
+    event::{EventEnvelope, EventType},
 };
+
 #[tokio::test]
 async fn test_stored_event_to_sui_event() -> Result<(), anyhow::Error> {
     telemetry_subscribers::init_for_testing();
@@ -29,15 +30,8 @@ async fn test_stored_event_to_sui_event() -> Result<(), anyhow::Error> {
     let delete_obj = test_utils::new_test_deleteobj_event(1_666_002, 3, None, None);
     insert_and_fetch_by_tx_digest_then_compare(delete_obj, &db).await?;
 
-    let transfer_obj = test_utils::new_test_transfer_event(
-        1_666_003,
-        4,
-        1,
-        TransferType::ToAddress,
-        None,
-        None,
-        None,
-    );
+    let transfer_obj =
+        test_utils::new_test_transfer_event(1_666_003, 4, 1, "0x2::test:Object", None, None, None);
     insert_and_fetch_by_tx_digest_then_compare(transfer_obj, &db).await?;
 
     let publish = test_utils::new_test_publish_event(1_001_000, 5, None);

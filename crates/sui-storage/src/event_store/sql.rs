@@ -3,25 +3,26 @@
 
 //! SQL and SQLite-based Event Store
 
-use super::*;
+use std::collections::BTreeMap;
+use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use sqlx::ConnectOptions;
-use std::collections::BTreeMap;
-use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
-use strum::{EnumMessage, IntoEnumIterator};
-use sui_types::base_types::SuiAddress;
-use sui_types::object::Owner;
-
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteRow, SqliteSynchronous},
     Executor, QueryBuilder, Row, SqlitePool,
 };
-use sui_types::error::SuiError;
-use sui_types::event::{Event, TransferTypeVariants};
+use strum::{EnumMessage, IntoEnumIterator};
 use tracing::{info, instrument, log, warn};
+
+use sui_types::base_types::SuiAddress;
+use sui_types::error::SuiError;
+use sui_types::event::Event;
+use sui_types::object::Owner;
+
+use super::*;
 
 /// Sqlite-based Event Store
 ///
@@ -60,6 +61,8 @@ enum EventsTableColumns {
     ModuleName,
     /// function TEXT
     Function,
+    /// object_type TEXT
+    ObjectType,
     /// object_id BLOB
     ObjectId,
     /// fields TEXT
@@ -75,7 +78,7 @@ enum EventsTableColumns {
 }
 
 const SQL_INSERT_TX: &str = "INSERT INTO events (timestamp, seq_num, tx_digest, event_type, \
-    package_id, module_name, object_id, fields, move_event_name, contents, sender,  \
+    package_id, module_name, object_id, object_type fields, move_event_name, contents, sender,  \
     recipient) ";
 
 const INDEXED_COLUMNS: &[&str] = &[
@@ -87,6 +90,7 @@ const INDEXED_COLUMNS: &[&str] = &[
     "sender",
     "recipient",
     "object_id",
+    "object_type",
     "move_event_name",
 ];
 
@@ -249,18 +253,11 @@ impl SqlEventStore {
             // For non-move-events, extract whatever we can to rebuild the event
             // and store them
             let mut fields = BTreeMap::new();
-            if let Some(transfer_type_u16) = event
-                .event
-                .transfer_type()
-                .map(|tt| TransferTypeVariants::from(tt) as u64)
-            {
-                fields.insert(TRANSFER_TYPE_KEY, transfer_type_u16);
-            };
             if let Some(object_version) = event.event.object_version().map(|ov| ov.value()) {
-                fields.insert(OBJECT_VERSION_KEY, object_version as u64);
+                fields.insert(OBJECT_VERSION_KEY, object_version.to_string());
             }
             if let Some(amount) = event.event.amount() {
-                fields.insert(AMOUNT_KEY, amount);
+                fields.insert(AMOUNT_KEY, amount.to_string());
             }
             json!(fields).to_string()
         }
@@ -296,6 +293,7 @@ impl From<SqliteRow> for StoredEvent {
         let object_id =
             SqlEventStore::try_extract_object_id(&row, EventsTableColumns::ObjectId as usize)
                 .expect("Error converting stored object ID bytes to ObjectID");
+        let object_type: Option<String> = row.get(EventsTableColumns::ObjectType as usize);
         let module_name: Option<String> = row.get(EventsTableColumns::ModuleName as usize);
         let function: Option<String> = row.get(EventsTableColumns::Function as usize);
         let fields_text: &str = row.get(EventsTableColumns::Fields as usize);
@@ -330,6 +328,7 @@ impl From<SqliteRow> for StoredEvent {
             package_id,
             module_name: module_name.map(|s| s.into()),
             function_name: function.map(SharedStr::from),
+            object_type,
             object_id,
             fields,
             move_event_contents,
@@ -410,6 +409,7 @@ impl EventStore for SqlEventStore {
                     .push_bind(event.event.package_id().map(|pid| pid.to_vec()))
                     .push_bind(event.event.module_name())
                     .push_bind(event.event.object_id().map(|id| id.to_vec()))
+                    .push_bind(event.event.object_type())
                     .push_bind(Self::event_to_json(event))
                     .push_bind(move_event_name)
                     .push_bind(event.event.move_event_contents())
@@ -628,12 +628,13 @@ fn convert_sqlx_err(err: sqlx::Error) -> SuiError {
 
 #[cfg(test)]
 mod tests {
-    use super::test_utils;
-    use super::*;
     use flexstr::shared_str;
     use move_core_types::{account_address::AccountAddress, identifier::Identifier};
 
-    use sui_types::event::{EventEnvelope, TransferType};
+    use sui_types::event::EventEnvelope;
+
+    use super::test_utils;
+    use super::*;
 
     fn test_queried_event_vs_test_envelope(queried: &StoredEvent, orig: &EventEnvelope) {
         assert_eq!(queried.timestamp, orig.timestamp);
@@ -647,10 +648,7 @@ mod tests {
         assert_eq!(queried.object_id, orig.event.object_id());
         assert_eq!(queried.sender, orig.event.sender());
         assert_eq!(queried.recipient.as_ref(), orig.event.recipient());
-        assert_eq!(
-            queried.transfer_type().unwrap().as_ref(),
-            orig.event.transfer_type()
-        );
+        assert_eq!(queried.object_type, orig.event.object_type());
         assert_eq!(
             queried.object_version().unwrap().as_ref(),
             orig.event.object_version()
@@ -681,7 +679,7 @@ mod tests {
                 1_002_000,
                 3,
                 1,
-                TransferType::Coin,
+                "0x2::test::Object",
                 None,
                 None,
                 None,
@@ -691,7 +689,7 @@ mod tests {
                 1_004_000,
                 4,
                 1,
-                TransferType::ToAddress,
+                "0x2::test::Object",
                 None,
                 None,
                 None,
@@ -737,7 +735,7 @@ mod tests {
                 1_002_000,
                 3,
                 1,
-                TransferType::Coin,
+                "0x2::test:Object",
                 None,
                 None,
                 None,
@@ -747,7 +745,7 @@ mod tests {
                 1_004_000,
                 4,
                 1,
-                TransferType::ToAddress,
+                "0x2::test:Object",
                 None,
                 None,
                 None,
@@ -773,7 +771,7 @@ mod tests {
 
         test_queried_event_vs_test_envelope(&transfer_event, target_event);
 
-        assert_eq!(transfer_event.fields.len(), 3); // type, obj ver, amount
+        assert_eq!(transfer_event.fields.len(), 1); // obj ver
 
         Ok(())
     }
@@ -796,7 +794,7 @@ mod tests {
                 1_002_000,
                 3,
                 1,
-                TransferType::Coin,
+                "0x2::test:Object",
                 None,
                 None,
                 None,
@@ -806,7 +804,7 @@ mod tests {
                 1_004_000,
                 4,
                 1,
-                TransferType::ToAddress,
+                "0x2::test:Object",
                 None,
                 None,
                 None,
@@ -837,7 +835,7 @@ mod tests {
             .await?;
         assert_eq!(queried_events.len(), 1);
         test_queried_event_vs_test_envelope(&queried_events[0], &to_insert[2]);
-        assert_eq!(queried_events[0].fields.len(), 3);
+        assert_eq!(queried_events[0].fields.len(), 1);
 
         // Query with wrong time range, return 0 events
         let queried_events = db
@@ -867,7 +865,7 @@ mod tests {
             .await?;
         assert_eq!(queried_events.len(), 1);
         test_queried_event_vs_test_envelope(&queried_events[0], &to_insert[3]);
-        assert_eq!(queried_events[0].fields.len(), 0);
+        assert_eq!(queried_events[0].fields.len(), 1); // version
 
         // Query Move Event
         let queried_events = db
@@ -898,7 +896,7 @@ mod tests {
                 1_002_000,
                 3,
                 1,
-                TransferType::Coin,
+                "0x2::test:Object",
                 None,
                 None,
                 None,
@@ -908,7 +906,7 @@ mod tests {
                 1_004_000,
                 4,
                 1,
-                TransferType::ToAddress,
+                "0x2::test:Object",
                 None,
                 None,
                 None,
@@ -1034,7 +1032,7 @@ mod tests {
                 1_000_000,
                 1,
                 1,
-                TransferType::Coin,
+                "0x2::test:Object",
                 Some(object_id),
                 Some(sender),
                 Some(recipient),
@@ -1052,7 +1050,7 @@ mod tests {
                 1_002_000,
                 3,
                 1,
-                TransferType::Coin,
+                "0x2::test:Object",
                 None,
                 None,
                 Some(recipient),
@@ -1143,7 +1141,7 @@ mod tests {
             1_000_000,
             1,
             u64::MAX,
-            TransferType::Coin,
+            "0x2::test:Object",
             None,
             None,
             None,
@@ -1182,7 +1180,7 @@ mod tests {
                 1_002_000,
                 3,
                 1,
-                TransferType::Coin,
+                "0x2::test:Object",
                 None,
                 None,
                 None,
@@ -1192,7 +1190,7 @@ mod tests {
                 1_004_000,
                 4,
                 1,
-                TransferType::ToAddress,
+                "0x2::test:Object",
                 None,
                 None,
                 None,

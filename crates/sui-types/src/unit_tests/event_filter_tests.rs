@@ -8,8 +8,8 @@ use move_core_types::identifier::Identifier;
 use serde_json::json;
 
 use crate::base_types::{SuiAddress, TransactionDigest};
+use crate::event::EventType;
 use crate::event::{Event, EventEnvelope};
-use crate::event::{EventType, TransferType};
 use crate::filter::{EventFilter, Filter};
 use crate::gas_coin::GasCoin;
 use crate::object::Owner;
@@ -79,10 +79,9 @@ fn test_transfer_filter() {
         transaction_module: Identifier::from(ident_str!("test_module")),
         sender,
         recipient,
+        object_type: "0x2::example::Object".into(),
         object_id,
         version: Default::default(),
-        type_: TransferType::Coin,
-        amount: None,
     };
     let envelope = EventEnvelope {
         timestamp: 0,
@@ -154,6 +153,7 @@ fn test_delete_object_filter() {
         transaction_module: Identifier::from(ident_str!("test_module")),
         sender,
         object_id,
+        version: Default::default(),
     };
     let envelope = EventEnvelope {
         timestamp: 0,
@@ -194,6 +194,7 @@ fn test_new_object_filter() {
         transaction_module: Identifier::from(ident_str!("test_module")),
         sender,
         recipient,
+        object_type: "0x2::example::Object".into(),
         object_id,
     };
     let envelope = EventEnvelope {

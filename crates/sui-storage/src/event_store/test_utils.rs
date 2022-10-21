@@ -9,7 +9,7 @@ use sui_types::SUI_FRAMEWORK_ADDRESS;
 
 use move_core_types::account_address::AccountAddress;
 use sui_types::base_types::SuiAddress;
-use sui_types::event::{Event, EventEnvelope, TransferType};
+use sui_types::event::{Event, EventEnvelope};
 use sui_types::object::Owner;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -79,6 +79,7 @@ pub fn new_test_newobj_event(
             sender: sender.unwrap_or_else(SuiAddress::random_for_testing_only),
             recipient: recipient
                 .unwrap_or_else(|| Owner::AddressOwner(SuiAddress::random_for_testing_only())),
+            object_type: "0x2::test:NewObject".to_string(),
             object_id: object_id.unwrap_or_else(ObjectID::random),
         },
         None,
@@ -100,6 +101,7 @@ pub fn new_test_deleteobj_event(
             transaction_module: Identifier::new("module").unwrap(),
             sender: sender.unwrap_or_else(SuiAddress::random_for_testing_only),
             object_id: object_id.unwrap_or_else(ObjectID::random),
+            version: Default::default(),
         },
         None,
     )
@@ -109,7 +111,7 @@ pub fn new_test_transfer_event(
     timestamp: u64,
     seq_num: u64,
     object_version: u64,
-    type_: TransferType,
+    object_type: &str,
     object_id: Option<ObjectID>,
     sender: Option<SuiAddress>,
     recipient: Option<Owner>,
@@ -124,10 +126,9 @@ pub fn new_test_transfer_event(
             sender: sender.unwrap_or_else(SuiAddress::random_for_testing_only),
             recipient: recipient
                 .unwrap_or_else(|| Owner::AddressOwner(SuiAddress::random_for_testing_only())),
+            object_type: object_type.to_string(),
             object_id: object_id.unwrap_or_else(ObjectID::random),
             version: object_version.into(),
-            type_,
-            amount: Some(10),
         },
         None,
     )
