@@ -19,17 +19,13 @@ use sui_types::committee::EpochId;
 use sui_types::error::{ExecutionError, ExecutionErrorKind};
 use sui_types::gas::GasCostSummary;
 use sui_types::gas_coin::GasCoin;
-use sui_types::id::UID;
 #[cfg(test)]
 use sui_types::messages::ExecutionFailureStatus;
 #[cfg(test)]
 use sui_types::messages::InputObjects;
 use sui_types::messages::{ObjectArg, Pay};
 use sui_types::object::{Data, MoveObject, Owner, OBJECT_START_VERSION};
-use sui_types::storage::{DeleteKind, InnerTxContext, ParentSync, WriteKind};
-#[cfg(test)]
-use sui_types::temporary_store;
-use sui_types::temporary_store::InnerTemporaryStore;
+use sui_types::storage::InnerTxContext;
 use sui_types::{
     base_types::{ObjectID, ObjectRef, SuiAddress, TransactionDigest, TxContext},
     gas::SuiGasStatus,
