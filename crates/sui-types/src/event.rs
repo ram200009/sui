@@ -150,6 +150,17 @@ pub enum Event {
         object_id: ObjectID,
         version: SequenceNumber,
     },
+
+    /// Object level event
+    /// Object mutated.
+    MutateObject {
+        package_id: ObjectID,
+        transaction_module: Identifier,
+        sender: SuiAddress,
+        object_type: String,
+        object_id: ObjectID,
+        version: SequenceNumber,
+    },
     /// Delete object
     DeleteObject {
         package_id: ObjectID,
@@ -281,6 +292,7 @@ impl Event {
     pub fn object_id(&self) -> Option<ObjectID> {
         match self {
             Event::TransferObject { object_id, .. }
+            | Event::MutateObject { object_id, .. }
             | Event::DeleteObject { object_id, .. }
             | Event::NewObject { object_id, .. }
             | Event::CoinBalanceChange {
@@ -298,6 +310,7 @@ impl Event {
             | Event::NewObject { package_id, .. }
             | Event::DeleteObject { package_id, .. }
             | Event::TransferObject { package_id, .. }
+            | Event::MutateObject { package_id, .. }
             | Event::CoinBalanceChange { package_id, .. }
             | Event::Publish { package_id, .. } => Some(*package_id),
             _ => None,
@@ -309,6 +322,7 @@ impl Event {
         match self {
             Event::MoveEvent { sender, .. }
             | Event::TransferObject { sender, .. }
+            | Event::MutateObject { sender, .. }
             | Event::NewObject { sender, .. }
             | Event::Publish { sender, .. }
             | Event::DeleteObject { sender, .. }
@@ -331,6 +345,9 @@ impl Event {
                 transaction_module, ..
             }
             | Event::TransferObject {
+                transaction_module, ..
+            }
+            | Event::MutateObject {
                 transaction_module, ..
             }
             | Event::CoinBalanceChange {
@@ -393,6 +410,7 @@ impl Event {
     pub fn object_type(&self) -> Option<String> {
         match self {
             Event::TransferObject { object_type, .. }
+            | Event::MutateObject { object_type, .. }
             | Event::NewObject { object_type, .. }
             | Event::CoinBalanceChange {
                 coin_type: object_type,
@@ -406,6 +424,7 @@ impl Event {
     pub fn object_version(&self) -> Option<&SequenceNumber> {
         match self {
             Event::TransferObject { version, .. }
+            | Event::MutateObject { version, .. }
             | Event::CoinBalanceChange { version, .. }
             | Event::DeleteObject { version, .. } => Some(version),
             _ => None,
