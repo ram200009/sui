@@ -25,7 +25,7 @@ use sui_types::messages::ExecutionFailureStatus;
 use sui_types::messages::InputObjects;
 use sui_types::messages::{ObjectArg, Pay};
 use sui_types::object::{Data, MoveObject, Owner, OBJECT_START_VERSION};
-use sui_types::storage::InnerTxContext;
+use sui_types::storage::SingleTxContext;
 use sui_types::{
     base_types::{ObjectID, ObjectRef, SuiAddress, TransactionDigest, TxContext},
     gas::SuiGasStatus,
@@ -275,7 +275,7 @@ fn transfer_object<S>(
     object.ensure_public_transfer_eligible()?;
     object.transfer_and_increment_version(recipient);
     // This will extract the transfer amount if the object is a Coin of some kind
-    let ctx = InnerTxContext::transfer_object(sender);
+    let ctx = SingleTxContext::transfer_object(sender);
     temporary_store.write_object(&ctx, object, WriteKind::Mutate);
     Ok(())
 }
@@ -360,7 +360,7 @@ fn pay<S>(
             format!("Attempting to pay a total amount {:?} that is greater than the sum of input coin values {:?}", total_amount, total_coins),
         ));
     }
-    let ctx = InnerTxContext::pay(tx_ctx.sender());
+    let ctx = SingleTxContext::pay(tx_ctx.sender());
     // walk through the coins from left to right, debiting as needed to cover each amount to send
     let mut cur_coin_idx = 0;
     for (recipient, amount) in recipients.iter().zip(amounts) {
@@ -448,7 +448,7 @@ fn transfer_sui<S>(
 ) -> Result<(), ExecutionError> {
     #[cfg(debug_assertions)]
     let version = object.version();
-    let ctx = InnerTxContext::transfer_sui(tx_ctx.sender());
+    let ctx = SingleTxContext::transfer_sui(tx_ctx.sender());
     if let Some(amount) = amount {
         // Deduct the amount from the gas coin and update it.
         let mut gas_coin = GasCoin::try_from(&object)

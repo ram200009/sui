@@ -23,7 +23,7 @@ use crate::error::SuiError;
 use crate::object::MoveObject;
 use crate::object::ObjectFormatOptions;
 use crate::object::Owner;
-use crate::storage::InnerTxContext;
+use crate::storage::SingleTxContext;
 use crate::{
     base_types::{ObjectID, SequenceNumber, SuiAddress, TransactionDigest},
     committee::EpochId,
@@ -220,7 +220,7 @@ impl Event {
     }
 
     pub fn balance_change(
-        ctx: &InnerTxContext,
+        ctx: &SingleTxContext,
         change_type: BalanceChangeType,
         owner: Owner,
         coin_object_id: ObjectID,
@@ -244,7 +244,7 @@ impl Event {
     }
 
     pub fn transfer_object(
-        ctx: &InnerTxContext,
+        ctx: &SingleTxContext,
         recipient: Owner,
         object_type: String,
         object_id: ObjectID,
@@ -262,7 +262,7 @@ impl Event {
     }
 
     pub fn new_object(
-        ctx: &InnerTxContext,
+        ctx: &SingleTxContext,
         recipient: Owner,
         object_type: String,
         object_id: ObjectID,
