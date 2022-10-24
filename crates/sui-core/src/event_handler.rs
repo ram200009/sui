@@ -105,7 +105,7 @@ impl EventHandler {
         Ok(EventEnvelope {
             timestamp: timestamp_ms,
             tx_digest: Some(digest),
-            tx_seq_num: seq_num,
+            seq_num,
             event: event.clone(),
             move_struct_json_value: json_value,
         })

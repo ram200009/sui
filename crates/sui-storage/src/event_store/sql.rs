@@ -16,7 +16,7 @@ use sqlx::{
     Executor, QueryBuilder, Row, SqlitePool,
 };
 use strum::{EnumMessage, IntoEnumIterator};
-use tracing::{debug, info, instrument, log, warn};
+use tracing::{info, instrument, log, warn};
 
 use sui_types::base_types::SuiAddress;
 use sui_types::error::SuiError;
@@ -363,7 +363,6 @@ impl EventStore for SqlEventStore {
                 end_index += 1;
                 continue;
             }
-            cur_seq = event.tx_seq_num;
 
             let final_index = (start_index + MAX_INSERT_BATCH).min(events.len());
             // Keep going while the sequence number is not decreasing
@@ -378,7 +377,7 @@ impl EventStore for SqlEventStore {
                 let sender = event.event.sender().map(|sender| sender.to_vec());
                 let move_event_name = event.event.move_event_name();
                 b.push_bind(event.timestamp as i64)
-                    .push_bind(event.tx_seq_num as i64)
+                    .push_bind(event.seq_num as i64)
                     .push_bind(event.tx_digest.map(|txd| txd.to_bytes()))
                     .push_bind(event_type as u16)
                     .push_bind(event.event.package_id().map(|pid| pid.to_vec()))

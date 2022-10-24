@@ -55,7 +55,7 @@ pub fn new_test_publish_event(
     EventEnvelope {
         timestamp,
         tx_digest: None,
-        tx_seq_num: seq_num,
+        seq_num,
         event: Event::Publish {
             sender: sender.unwrap_or_else(SuiAddress::random_for_testing_only),
             package_id: ObjectID::random(),
@@ -74,7 +74,7 @@ pub fn new_test_newobj_event(
     EventEnvelope {
         timestamp,
         tx_digest: Some(TransactionDigest::random()),
-        tx_seq_num: seq_num,
+        seq_num,
         event: Event::NewObject {
             package_id: ObjectID::random(),
             transaction_module: Identifier::new("module").unwrap(),
@@ -96,7 +96,7 @@ pub fn new_test_deleteobj_event(
     EventEnvelope {
         timestamp,
         tx_digest: Some(TransactionDigest::random()),
-        tx_seq_num: seq_num,
+        seq_num,
         event: Event::DeleteObject {
             package_id: ObjectID::random(),
             transaction_module: Identifier::new("module").unwrap(),
@@ -119,7 +119,7 @@ pub fn new_test_transfer_event(
     EventEnvelope {
         timestamp,
         tx_digest: Some(TransactionDigest::random()),
-        tx_seq_num: seq_num,
+        seq_num,
         event: Event::TransferObject {
             package_id: ObjectID::random(),
             transaction_module: Identifier::new("module").unwrap(),
@@ -162,7 +162,7 @@ pub fn new_test_move_event(
     EventEnvelope {
         timestamp,
         tx_digest: Some(TransactionDigest::random()),
-        tx_seq_num: seq_num,
+        seq_num,
         event: move_event,
         move_struct_json_value: Some(json),
     }
