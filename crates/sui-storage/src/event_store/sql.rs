@@ -78,7 +78,7 @@ enum EventsTableColumns {
 }
 
 const SQL_INSERT_TX: &str = "INSERT INTO events (timestamp, seq_num, tx_digest, event_type, \
-    package_id, module_name, object_id, object_type fields, move_event_name, contents, sender,  \
+    package_id, module_name, object_id, object_type, fields, move_event_name, contents, sender,  \
     recipient) ";
 
 const INDEXED_COLUMNS: &[&str] = &[

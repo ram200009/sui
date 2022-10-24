@@ -9,10 +9,7 @@ use tempfile::NamedTempFile;
 use tokio::runtime::Builder;
 
 use sui_storage::event_store::{sql::SqlEventStore, test_utils, EventStore};
-use sui_types::{
-    base_types::SuiAddress,
-    event::{EventEnvelope, TransferType},
-};
+use sui_types::{base_types::SuiAddress, event::EventEnvelope};
 
 async fn repeat_batch_insert(db: &SqlEventStore, events: &[EventEnvelope], batch_size: usize) {
     // Reset sequence number so we can insert events with old sequence numbers
@@ -50,7 +47,7 @@ fn bench_sqlite_ingestion_varying_batch_size(c: &mut Criterion) {
             1_666_003 + n * 100,
             4 + n,
             n,
-            TransferType::ToAddress,
+            "0x2::test::Object",
             None,
             Some(sender),
             None,
