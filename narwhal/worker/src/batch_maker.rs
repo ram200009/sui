@@ -252,6 +252,7 @@ impl BatchMaker {
         // processed leading to an under utilization of resources.
 
         // Send the batch through the deliver channel for further processing.
+        let mut closing = false; // flag if we are closing the core.
         let (notify_done, done_sending) = tokio::sync::oneshot::channel();
         if self
             .tx_message
@@ -260,6 +261,7 @@ impl BatchMaker {
             .is_err()
         {
             tracing::debug!("{}", DagError::ShuttingDown);
+            closing = true;
         }
 
         // we are deliberately measuring this after the sending to the downstream
@@ -276,6 +278,11 @@ impl BatchMaker {
         let tx_digest = self.tx_digest.clone();
 
         async move {
+            // The channels are closed, so we are shutting down. Nothing to do.
+            if closing {
+                return;
+            }
+
             // Now save it to disk
             let digest = batch.digest();
 
@@ -296,6 +303,7 @@ impl BatchMaker {
                 .is_err()
             {
                 tracing::debug!("{}", DagError::ShuttingDown);
+                return; // Error is fatal.
             };
 
             // Wait for a primary response
