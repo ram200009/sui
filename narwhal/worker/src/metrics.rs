@@ -54,6 +54,8 @@ pub struct WorkerMetrics {
     pub created_batch_size: HistogramVec,
     /// Time taken to create a batch
     pub created_batch_latency: HistogramVec,
+    /// The number of parallel worker batches currently processed by the worker
+    pub parallel_worker_batches: IntGauge,
 }
 
 impl WorkerMetrics {
@@ -89,6 +91,12 @@ impl WorkerMetrics {
                     10.0, 50.0, 100.0, 200.0, 500.0, 1_000.0, 5_000.0, 10_000.0, 20_000.0,
                     50_000.0, 100_000.0
                 ],
+                registry
+            )
+            .unwrap(),
+            parallel_worker_batches: register_int_gauge_with_registry!(
+                "parallel_worker_batches",
+                "The number of parallel worker batches currently processed by the worker",
                 registry
             )
             .unwrap(),
