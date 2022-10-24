@@ -185,6 +185,7 @@ pub struct AuthorityMetrics {
     /// Batch service metrics
     pub(crate) batch_service_total_tx_broadcasted: IntCounter,
     pub(crate) batch_service_latest_seq_broadcasted: IntGauge,
+    pub(crate) batch_svc_next_sequence_number: IntGauge,
 }
 
 // Override default Prom buckets for positive numbers in 0-50k range
@@ -441,6 +442,11 @@ impl AuthorityMetrics {
                 registry,
             )
             .unwrap(),
+            batch_svc_next_sequence_number: register_int_gauge_with_registry!(
+                "batch_svc_next_sequence_number",
+                "Next sequence number batch service is requesting",
+                registry,
+            ).unwrap(),
         }
     }
 }
@@ -1473,7 +1479,7 @@ impl AuthorityState {
             committee_store,
             batch_channels: tx,
             batch_notifier: Arc::new(
-                authority_notifier::TransactionNotifier::new(store.clone())
+                authority_notifier::TransactionNotifier::new(store.clone(), prometheus_registry)
                     .expect("Notifier cannot start."),
             ),
             consensus_guardrail: AtomicUsize::new(0),
