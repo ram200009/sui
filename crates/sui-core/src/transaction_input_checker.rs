@@ -106,6 +106,7 @@ where
         let gas_object = gas_object.ok_or(SuiError::ObjectErrors {
             errors: vec![SuiError::ObjectNotFound {
                 object_id: gas_payment.0,
+                version: Some(gas_payment.1),
             }],
         })?;
 
