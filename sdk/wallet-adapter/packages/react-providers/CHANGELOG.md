@@ -1,5 +1,21 @@
 # @mysten/wallet-adapter-react
 
+## 4.1.0
+
+### Minor Changes
+
+- 06ba46f7d: Remove deprecated executeMoveCall and executeSerializedMoveCall APIs.
+
+### Patch Changes
+
+- Updated dependencies [e86f8bc5e]
+- Updated dependencies [b4a8ee9bf]
+- Updated dependencies [2dc594ef7]
+- Updated dependencies [4f0c611ff]
+- Updated dependencies [06ba46f7d]
+  - @mysten/sui.js@0.13.1
+  - @mysten/wallet-adapter-base@0.3.0
+
 ## 4.0.0
 
 ### Patch Changes
